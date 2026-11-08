@@ -90,11 +90,35 @@ impl Listener {
             let mut url_idx = 0usize;
             loop {
                 let base = &urls[url_idx % urls.len()];
-                let ws_url = if base.contains('?') {
-                    format!("{}&t={}", base, now_ms())
-                } else {
-                    format!("{}?t={}", base, now_ms())
+                // Match the TypeScript client: append `t` plus the zpw_ver/zpw_type
+                // markers the server expects on the WebSocket handshake URL.
+                let base_ctx = crate::context::ContextBase {
+                    api_type: ctx.api_type,
+                    api_version: ctx.api_version,
+                    imei: Some(ctx.imei.clone()),
+                    user_agent: Some(ctx.user_agent.clone()),
+                    language: Some(ctx.language.clone()),
+                    secret_key: Some(ctx.secret_key.clone()),
+                    uid: Some(ctx.uid.clone()),
+                    options: ctx.options.clone(),
+                    http: ctx.http.clone(),
+                    login_info: Some(ctx.login_info.clone()),
+                    settings: ctx.settings.clone(),
+                    extra_ver: ctx.extra_ver.clone(),
                 };
+                let ws_url = crate::http::make_url(
+                    &base_ctx,
+                    base,
+                    &[("t", now_ms().to_string())],
+                    true,
+                )
+                .unwrap_or_else(|_| {
+                    if base.contains('?') {
+                        format!("{}&t={}", base, now_ms())
+                    } else {
+                        format!("{}?t={}", base, now_ms())
+                    }
+                });
 
                 zlog_info!("Connecting to WebSocket: {}", ws_url);
                 let cipher_key: Arc<Mutex<Option<String>>> = Arc::new(Mutex::new(None));
@@ -143,19 +167,27 @@ async fn connect_and_run(
     stop_rx: &mut mpsc::Receiver<()>,
     cipher_key: Arc<Mutex<Option<String>>>,
 ) -> Result<bool> {
-    // Build request with headers
+    // Build request with headers matching the TypeScript client exactly.
     let mut request = ws_url.into_client_request().map_err(|e| ZaloError::WebSocket(e.to_string()))?;
     let headers = request.headers_mut();
     headers.insert("Origin", HeaderValue::from_static("https://chat.zalo.me"));
     if let Ok(ua) = HeaderValue::from_str(&ctx.user_agent) {
         headers.insert("User-Agent", ua);
     }
+    headers.insert("Accept-Encoding", HeaderValue::from_static("gzip, deflate, br, zstd"));
+    headers.insert("Accept-Language", HeaderValue::from_static("en-US,en;q=0.9"));
+    headers.insert("Cache-Control", HeaderValue::from_static("no-cache"));
+    headers.insert("Pragma", HeaderValue::from_static("no-cache"));
+    headers.insert("Sec-WebSocket-Extensions", HeaderValue::from_static("permessage-deflate; client_max_window_bits"));
     // Cookie header: extract from cookie store
     if let Some(cookie_str) = get_cookie_header(ctx).await {
         if let Ok(v) = HeaderValue::from_str(&cookie_str) {
             headers.insert("Cookie", v);
         }
     }
+    // Explicit Host header (some proxies/servers reject requests without it)
+    // Note: tokio-tungstenite already sets Host from the URL; re-setting it here
+    // can produce a duplicate header on some servers, so we leave it alone.
 
     let (ws_stream, _) = tokio_tungstenite::connect_async(request)
         .await
@@ -166,7 +198,8 @@ async fn connect_and_run(
 
     let (mut write, mut read) = ws_stream.split();
     let (out_tx, mut out_rx) = mpsc::unbounded_channel::<Vec<u8>>();
-    let mut ping_interval = tokio::time::interval(std::time::Duration::from_secs(30));
+    let ping_interval_ms = get_ping_interval_ms(ctx);
+    let mut ping_interval = tokio::time::interval(std::time::Duration::from_millis(ping_interval_ms));
     ping_interval.tick().await; // first tick is immediate
 
     // Writer task
@@ -349,4 +382,24 @@ fn now_ms() -> u64 {
         .duration_since(std::time::UNIX_EPOCH)
         .unwrap_or_default()
         .as_millis() as u64
+}
+
+/// Read the ping interval (ms) from `ctx.settings.features.socket.ping_interval`,
+/// falling back to the TypeScript default of 30s when unavailable.
+fn get_ping_interval_ms(ctx: &ContextSession) -> u64 {
+    let default = 30_000u64;
+    let Some(settings) = ctx.settings.as_ref() else {
+        return default;
+    };
+    let interval = settings
+        .get("features")
+        .and_then(|f| f.get("socket"))
+        .and_then(|s| s.get("ping_interval"))
+        .and_then(|v| v.as_u64())
+        .unwrap_or(default);
+    if interval == 0 {
+        default
+    } else {
+        interval
+    }
 }
