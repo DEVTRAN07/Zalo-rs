@@ -80,6 +80,46 @@ pub mod get_pending_group_members;
 pub mod get_pin_conversations;
 pub mod get_poll_detail;
 pub mod get_product_catalog_list;
+pub mod get_qr;
+pub mod get_quick_message_list;
+pub mod get_related_friend_group;
+pub mod get_reminder;
+pub mod get_reminder_responses;
+pub mod get_sent_friend_request;
+pub mod get_settings;
+pub mod get_sticker_category_detail;
+pub mod get_stickers;
+pub mod get_stickers_detail;
+pub mod get_unread_mark;
+pub mod invite_user_to_groups;
+pub mod join_group_invite_box;
+pub mod join_group_link;
+pub mod last_online;
+pub mod leave_group;
+pub mod lock_poll;
+pub mod lost_focus;
+pub mod parse_link;
+pub mod register_catalog;
+pub mod reject_friend_request;
+pub mod remove_friend;
+pub mod remove_friend_alias;
+pub mod remove_group_blocked_member;
+pub mod remove_group_deputy;
+pub mod remove_quick_message;
+pub mod remove_reminder;
+pub mod remove_unread_mark;
+pub mod remove_user_from_group;
+pub mod reset_hidden_convers_pin;
+pub mod reuse_avatar;
+pub mod review_pending_member_request;
+pub mod scan_url;
+pub mod search_sticker;
+pub mod send_bank_card;
+pub mod send_card;
+pub mod send_delivered_event;
+pub mod send_friend_request;
+pub mod send_link;
+pub mod send_report;
 
 pub mod get_user_info;
 pub mod keep_alive;
@@ -175,6 +215,46 @@ pub use get_pending_group_members::GetPendingGroupMembersResponse;
 pub use get_pin_conversations::GetPinConversationsResponse;
 pub use get_poll_detail::GetPollDetailResponse;
 pub use get_product_catalog_list::GetProductCatalogListResponse;
+pub use get_qr::GetQrResponse;
+pub use get_quick_message_list::GetQuickMessageListResponse;
+pub use get_related_friend_group::GetRelatedFriendGroupResponse;
+pub use get_reminder::GetReminderResponse;
+pub use get_reminder_responses::GetReminderResponsesResponse;
+pub use get_sent_friend_request::GetSentFriendRequestResponse;
+pub use get_settings::GetSettingsResponse;
+pub use get_sticker_category_detail::GetStickerCategoryDetailResponse;
+pub use get_stickers::GetStickersResponse;
+pub use get_stickers_detail::GetStickersDetailResponse;
+pub use get_unread_mark::GetUnreadMarkResponse;
+pub use invite_user_to_groups::InviteUserToGroupsResponse;
+pub use join_group_invite_box::JoinGroupInviteBoxResponse;
+pub use join_group_link::JoinGroupLinkResponse;
+pub use last_online::LastOnlineResponse;
+pub use leave_group::LeaveGroupResponse;
+pub use lock_poll::LockPollResponse;
+pub use lost_focus::LostFocusResponse;
+pub use parse_link::ParseLinkResponse;
+pub use register_catalog::RegisterCatalogResponse;
+pub use reject_friend_request::RejectFriendRequestResponse;
+pub use remove_friend::RemoveFriendResponse;
+pub use remove_friend_alias::RemoveFriendAliasResponse;
+pub use remove_group_blocked_member::RemoveGroupBlockedMemberResponse;
+pub use remove_group_deputy::RemoveGroupDeputyResponse;
+pub use remove_quick_message::RemoveQuickMessageResponse;
+pub use remove_reminder::RemoveReminderResponse;
+pub use remove_unread_mark::RemoveUnreadMarkResponse;
+pub use remove_user_from_group::RemoveUserFromGroupResponse;
+pub use reset_hidden_convers_pin::ResetHiddenConversPinResponse;
+pub use reuse_avatar::ReuseAvatarResponse;
+pub use review_pending_member_request::{ReviewPendingMemberRequestPayload, ReviewPendingMemberRequestResponse};
+pub use scan_url::ScanUrlResponse;
+pub use search_sticker::SearchStickerResponse;
+pub use send_bank_card::{SendBankCardPayload, SendBankCardResponse};
+pub use send_card::{SendCardOptions, SendCardResponse};
+pub use send_delivered_event::{SendDeliveredEventMessageParams, SendDeliveredEventResponse};
+pub use send_friend_request::SendFriendRequestResponse;
+pub use send_link::{SendLinkOptions, SendLinkResponse};
+pub use send_report::{ReportReason, SendReportOptions, SendReportResponse};
 
 /// High-level API bound to an authenticated session.
 #[derive(Clone)]
@@ -577,4 +657,166 @@ impl ZaloApi {
     pub async fn get_product_catalog_list(&self, catalog_id: &str) -> Result<GetProductCatalogListResponse> {
         get_product_catalog_list::get_product_catalog_list(&self.ctx, &self.zpw_service_map, catalog_id).await
     }
+
+    // --- batch 3 ---
+    pub async fn get_qr(&self, user_ids: Vec<String>) -> Result<GetQrResponse> {
+        get_qr::get_qr(&self.ctx, &self.zpw_service_map, &user_ids).await
+    }
+
+    pub async fn get_quick_message_list(&self) -> Result<GetQuickMessageListResponse> {
+        get_quick_message_list::get_quick_message_list(&self.ctx, &self.zpw_service_map).await
+    }
+
+    pub async fn get_related_friend_group(&self, friend_ids: Vec<String>) -> Result<GetRelatedFriendGroupResponse> {
+        get_related_friend_group::get_related_friend_group(&self.ctx, &self.zpw_service_map, &friend_ids).await
+    }
+
+    pub async fn get_reminder(&self, reminder_id: &str) -> Result<GetReminderResponse> {
+        get_reminder::get_reminder(&self.ctx, &self.zpw_service_map, reminder_id).await
+    }
+
+    pub async fn get_reminder_responses(&self, reminder_id: &str) -> Result<GetReminderResponsesResponse> {
+        get_reminder_responses::get_reminder_responses(&self.ctx, &self.zpw_service_map, reminder_id).await
+    }
+
+    pub async fn get_sent_friend_request(&self) -> Result<GetSentFriendRequestResponse> {
+        get_sent_friend_request::get_sent_friend_request(&self.ctx, &self.zpw_service_map).await
+    }
+
+    pub async fn get_settings(&self) -> Result<GetSettingsResponse> {
+        get_settings::get_settings(&self.ctx, &self.zpw_service_map).await
+    }
+
+    pub async fn get_sticker_category_detail(&self, cate_id: i64) -> Result<GetStickerCategoryDetailResponse> {
+        get_sticker_category_detail::get_sticker_category_detail(&self.ctx, &self.zpw_service_map, cate_id).await
+    }
+
+    pub async fn get_stickers(&self, keyword: &str) -> Result<GetStickersResponse> {
+        get_stickers::get_stickers(&self.ctx, &self.zpw_service_map, keyword).await
+    }
+
+    pub async fn get_stickers_detail(&self, sticker_ids: Vec<i64>) -> Result<GetStickersDetailResponse> {
+        get_stickers_detail::get_stickers_detail(&self.ctx, &self.zpw_service_map, &sticker_ids).await
+    }
+
+    pub async fn get_unread_mark(&self) -> Result<GetUnreadMarkResponse> {
+        get_unread_mark::get_unread_mark(&self.ctx, &self.zpw_service_map).await
+    }
+
+    pub async fn invite_user_to_groups(&self, user_id: &str, group_ids: Vec<String>) -> Result<InviteUserToGroupsResponse> {
+        invite_user_to_groups::invite_user_to_groups(&self.ctx, &self.zpw_service_map, user_id, &group_ids).await
+    }
+
+    pub async fn join_group_invite_box(&self, group_id: &str) -> Result<JoinGroupInviteBoxResponse> {
+        join_group_invite_box::join_group_invite_box(&self.ctx, &self.zpw_service_map, group_id).await
+    }
+
+    pub async fn join_group_link(&self, link: &str) -> Result<JoinGroupLinkResponse> {
+        join_group_link::join_group_link(&self.ctx, &self.zpw_service_map, link).await
+    }
+
+    pub async fn last_online(&self, uid: &str) -> Result<LastOnlineResponse> {
+        last_online::last_online(&self.ctx, &self.zpw_service_map, uid).await
+    }
+
+    pub async fn leave_group(&self, group_id: &str, silent: bool) -> Result<LeaveGroupResponse> {
+        leave_group::leave_group(&self.ctx, &self.zpw_service_map, group_id, silent).await
+    }
+
+    pub async fn lock_poll(&self, poll_id: i64) -> Result<LockPollResponse> {
+        lock_poll::lock_poll(&self.ctx, &self.zpw_service_map, poll_id).await
+    }
+
+    pub async fn lost_focus(&self) -> Result<LostFocusResponse> {
+        lost_focus::lost_focus(&self.ctx, &self.zpw_service_map).await
+    }
+
+    pub async fn parse_link(&self, link: &str) -> Result<ParseLinkResponse> {
+        parse_link::parse_link(&self.ctx, &self.zpw_service_map, link).await
+    }
+
+    pub async fn register_catalog(&self, enable: bool) -> Result<RegisterCatalogResponse> {
+        register_catalog::register_catalog(&self.ctx, &self.zpw_service_map, enable).await
+    }
+
+    pub async fn reject_friend_request(&self, friend_id: &str) -> Result<RejectFriendRequestResponse> {
+        reject_friend_request::reject_friend_request(&self.ctx, &self.zpw_service_map, friend_id).await
+    }
+
+    pub async fn remove_friend(&self, friend_id: &str) -> Result<RemoveFriendResponse> {
+        remove_friend::remove_friend(&self.ctx, &self.zpw_service_map, friend_id).await
+    }
+
+    pub async fn remove_friend_alias(&self, friend_id: &str) -> Result<RemoveFriendAliasResponse> {
+        remove_friend_alias::remove_friend_alias(&self.ctx, &self.zpw_service_map, friend_id).await
+    }
+
+    pub async fn remove_group_blocked_member(&self, member_ids: Vec<String>, group_id: &str) -> Result<RemoveGroupBlockedMemberResponse> {
+        remove_group_blocked_member::remove_group_blocked_member(&self.ctx, &self.zpw_service_map, &member_ids, group_id).await
+    }
+
+    pub async fn remove_group_deputy(&self, member_ids: Vec<String>, group_id: &str) -> Result<RemoveGroupDeputyResponse> {
+        remove_group_deputy::remove_group_deputy(&self.ctx, &self.zpw_service_map, &member_ids, group_id).await
+    }
+
+    pub async fn remove_quick_message(&self, item_ids: Vec<i64>) -> Result<RemoveQuickMessageResponse> {
+        remove_quick_message::remove_quick_message(&self.ctx, &self.zpw_service_map, &item_ids).await
+    }
+
+    pub async fn remove_reminder(&self, reminder_id: &str, thread_id: &str, thread_type: ThreadType) -> Result<RemoveReminderResponse> {
+        remove_reminder::remove_reminder(&self.ctx, &self.zpw_service_map, reminder_id, thread_id, thread_type).await
+    }
+
+    pub async fn remove_unread_mark(&self, thread_id: &str, thread_type: ThreadType) -> Result<RemoveUnreadMarkResponse> {
+        remove_unread_mark::remove_unread_mark(&self.ctx, &self.zpw_service_map, thread_id, thread_type).await
+    }
+
+    pub async fn remove_user_from_group(&self, member_ids: Vec<String>, group_id: &str) -> Result<RemoveUserFromGroupResponse> {
+        remove_user_from_group::remove_user_from_group(&self.ctx, &self.zpw_service_map, &member_ids, group_id).await
+    }
+
+    pub async fn reset_hidden_convers_pin(&self) -> Result<ResetHiddenConversPinResponse> {
+        reset_hidden_convers_pin::reset_hidden_convers_pin(&self.ctx, &self.zpw_service_map).await
+    }
+
+    pub async fn reuse_avatar(&self, photo_id: &str) -> Result<ReuseAvatarResponse> {
+        reuse_avatar::reuse_avatar(&self.ctx, &self.zpw_service_map, photo_id).await
+    }
+
+    pub async fn review_pending_member_request(&self, payload: ReviewPendingMemberRequestPayload, group_id: &str) -> Result<ReviewPendingMemberRequestResponse> {
+        review_pending_member_request::review_pending_member_request(&self.ctx, &self.zpw_service_map, payload, group_id).await
+    }
+
+    pub async fn scan_url(&self, url: &str) -> Result<ScanUrlResponse> {
+        scan_url::scan_url(&self.ctx, &self.zpw_service_map, url).await
+    }
+
+    pub async fn search_sticker(&self, keyword: &str, limit: Option<i32>) -> Result<SearchStickerResponse> {
+        search_sticker::search_sticker(&self.ctx, &self.zpw_service_map, keyword, limit).await
+    }
+
+    pub async fn send_bank_card(&self, payload: SendBankCardPayload, thread_id: &str, thread_type: ThreadType) -> Result<SendBankCardResponse> {
+        send_bank_card::send_bank_card(&self.ctx, &self.zpw_service_map, payload, thread_id, thread_type).await
+    }
+
+    pub async fn send_card(&self, options: SendCardOptions, thread_id: &str, thread_type: ThreadType) -> Result<SendCardResponse> {
+        send_card::send_card(&self.ctx, &self.zpw_service_map, options, thread_id, thread_type).await
+    }
+
+    pub async fn send_delivered_event(&self, is_seen: bool, messages: Vec<SendDeliveredEventMessageParams>, thread_type: ThreadType) -> Result<SendDeliveredEventResponse> {
+        send_delivered_event::send_delivered_event(&self.ctx, &self.zpw_service_map, is_seen, &messages, thread_type).await
+    }
+
+    pub async fn send_friend_request(&self, msg: &str, user_id: &str) -> Result<SendFriendRequestResponse> {
+        send_friend_request::send_friend_request(&self.ctx, &self.zpw_service_map, msg, user_id).await
+    }
+
+    pub async fn send_link(&self, options: SendLinkOptions, thread_id: &str, thread_type: ThreadType) -> Result<SendLinkResponse> {
+        send_link::send_link(&self.ctx, &self.zpw_service_map, options, thread_id, thread_type).await
+    }
+
+    pub async fn send_report(&self, options: SendReportOptions, thread_id: &str, thread_type: ThreadType) -> Result<SendReportResponse> {
+        send_report::send_report(&self.ctx, &self.zpw_service_map, options, thread_id, thread_type).await
+    }
+
 }
