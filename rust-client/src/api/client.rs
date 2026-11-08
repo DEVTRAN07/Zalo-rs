@@ -15,11 +15,12 @@ pub type ZpwServiceMap = Value;
 pub struct ApiClient {
     ctx: ContextSession,
     service_map: ZpwServiceMap,
+    ws_urls: Vec<String>,
 }
 
 impl ApiClient {
-    pub fn new(ctx: ContextSession, service_map: ZpwServiceMap) -> Self {
-        Self { ctx, service_map }
+    pub fn new(ctx: ContextSession, service_map: ZpwServiceMap, ws_urls: Vec<String>) -> Self {
+        Self { ctx, service_map, ws_urls }
     }
 
     pub fn ctx(&self) -> &ContextSession {
@@ -28,6 +29,10 @@ impl ApiClient {
 
     pub fn service_map(&self) -> &ZpwServiceMap {
         &self.service_map
+    }
+
+    pub fn ws_urls(&self) -> &Vec<String> {
+        &self.ws_urls
     }
 
     /// Resolve a service URL from zpw_service_map.
@@ -80,7 +85,7 @@ impl ApiClient {
         self.resolve(res).await
     }
 
-    fn ctx_to_base(&self) -> ContextBase {
+    pub(crate) fn ctx_to_base(&self) -> ContextBase {
         ContextBase {
             api_type: self.ctx.api_type,
             api_version: self.ctx.api_version,

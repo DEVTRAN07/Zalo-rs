@@ -344,7 +344,7 @@ pub struct ZaloApi {
 impl ZaloApi {
     pub fn new(ctx: ContextSession, zpw_service_map: serde_json::Value, ws_urls: Vec<String>) -> Self {
         Self {
-            api_client: ApiClient::new(ctx, zpw_service_map),
+            api_client: ApiClient::new(ctx, zpw_service_map, ws_urls.clone()),
             ws_urls,
         }
     }
