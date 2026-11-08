@@ -1,5 +1,5 @@
 [package]
-name = "zalo-client"
+name = "zalo-rs"
 version = "0.1.0"
 edition = "2021"
 description = "Rust client for Zalo web API (reverse-engineered protocol)"

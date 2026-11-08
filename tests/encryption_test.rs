@@ -1,4 +1,4 @@
-use zalo_client::crypto::{
+use zalo_rs::crypto::{
     decode_aes, encode_aes, encode_aes_utf8_key, encrypt_pin, extract_imei_from_storage,
     get_sign_key, md5_hex, validate_pin, GetItem, ParamsEncryptor, ZALO_IMEI_STORAGE_KEYS,
 };

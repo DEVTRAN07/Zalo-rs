@@ -14,8 +14,8 @@ use crate::{zlog_info};
 ///
 /// # Example
 /// ```no_run
-/// # use zalo_client::{ZaloClient, Credentials, ZaloCookie};
-/// # async fn demo() -> zalo_client::errors::Result<()> {
+/// # use zalo_rs::{ZaloClient, Credentials, ZaloCookie};
+/// # async fn demo() -> zalo_rs::errors::Result<()> {
 /// let client = ZaloClient::new(Default::default());
 /// let creds = Credentials {
 ///     imei: "...".into(),

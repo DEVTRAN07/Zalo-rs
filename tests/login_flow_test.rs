@@ -1,4 +1,4 @@
-use zalo_client::crypto::{decode_aes, encode_aes, get_sign_key, ParamsEncryptor};
+use zalo_rs::crypto::{decode_aes, encode_aes, get_sign_key, ParamsEncryptor};
 use base64::{engine::general_purpose::STANDARD as BASE64, Engine as _};
 use serde_json::{json, Map, Value};
 

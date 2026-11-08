@@ -6,7 +6,7 @@
 //! Set environment variables or edit the credentials below:
 //!   ZALO_IMEI, ZALO_USER_AGENT, ZALO_COOKIE_JSON
 
-use zalo_client::{Credentials, ZaloClient, ZaloCookie};
+use zalo_rs::{Credentials, ZaloClient, ZaloCookie};
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {

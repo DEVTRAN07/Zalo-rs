@@ -24,7 +24,7 @@ The Rust API is not a drop-in replacement. Method names, payload types, and sign
 ### Login
 
 ```rust
-use zalo_client::{Credentials, ZaloClient, ZaloCookie};
+use zalo_rs::{Credentials, ZaloClient, ZaloCookie};
 
 let client = ZaloClient::new(Default::default());
 let api = client.login(Credentials {
@@ -37,7 +37,7 @@ let api = client.login(Credentials {
 
 ### Sending a message
 
-`ZaloApi::send_message` currently accepts `(message, thread_id, thread_type: u8)`. A `ThreadType` enum exists under `zalo_client::models::r#enum::ThreadType` if you want typed conversions.
+`ZaloApi::send_message` currently accepts `(message, thread_id, thread_type: u8)`. A `ThreadType` enum exists under `zalo_rs::models::r#enum::ThreadType` if you want typed conversions.
 
 ```rust
 let result = api.send_message("hello", thread_id, 0).await?;

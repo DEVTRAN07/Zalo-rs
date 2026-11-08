@@ -47,7 +47,7 @@ zalo-client = { path = "../zalo-client" }
 ## Quick start
 
 ```rust
-use zalo_client::{Credentials, ZaloClient, ZaloCookie};
+use zalo_rs::{Credentials, ZaloClient, ZaloCookie};
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -83,16 +83,16 @@ cargo run --example login
 ## API usage notes
 
 - Most endpoint methods are async and return `Result<...>`.
-- `send_message` currently takes `(message, thread_id, thread_type: u8)`. The `ThreadType` enum is available under `zalo_client::models::r#enum::ThreadType` if you prefer typed values.
+- `send_message` currently takes `(message, thread_id, thread_type: u8)`. The `ThreadType` enum is available under `zalo_rs::models::r#enum::ThreadType` if you prefer typed values.
 - `ZaloApi` also exposes helpers such as `uid()`, `context()`, `api_client()`, `get_own_id()`, `get_cookie()`, and `get_context()`.
-- Endpoint payload/response types are re-exported from `zalo_client::api` where applicable.
+- Endpoint payload/response types are re-exported from `zalo_rs::api` where applicable.
 
 ## WebSocket listener
 
 ```rust
-use zalo_client::{Credentials, ZaloClient};
+use zalo_rs::{Credentials, ZaloClient};
 
-# async fn demo(api: zalo_client::ZaloApi) -> Result<(), Box<dyn std::error::Error>> {
+# async fn demo(api: zalo_rs::ZaloApi) -> Result<(), Box<dyn std::error::Error>> {
 let mut listener = api.listener(); // or: api.create_listener()
 let mut rx = listener.start()?;
 

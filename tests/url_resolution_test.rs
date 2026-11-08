@@ -1,6 +1,6 @@
 use serde_json::json;
-use zalo_client::api::url::service_url;
-use zalo_client::errors::ZaloError;
+use zalo_rs::api::url::service_url;
+use zalo_rs::errors::ZaloError;
 
 #[test]
 fn service_url_constructs_correct_url() {

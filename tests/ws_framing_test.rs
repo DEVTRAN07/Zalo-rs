@@ -1,5 +1,5 @@
 use serde_json::json;
-use zalo_client::ws::{decode_header, encode_payload};
+use zalo_rs::ws::{decode_header, encode_payload};
 
 #[test]
 fn encode_payload_has_correct_binary_format() {
