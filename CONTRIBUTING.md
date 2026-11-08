@@ -1,6 +1,6 @@
-# Contributing to zalo-client
+# Contributing to zalo-rs
 
-`zalo-client` is an unofficial Rust client for the reverse-engineered Zalo web protocol. Contributions are welcome, but changes should be careful: protocol behavior can change without notice and misuse can affect user accounts.
+`zalo-rs` is an unofficial Rust client for the reverse-engineered Zalo web protocol. Contributions are welcome, but changes should be careful: protocol behavior can change without notice and misuse can affect user accounts.
 
 ## Before you start
 

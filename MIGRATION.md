@@ -1,10 +1,10 @@
 # Migration Guide
 
-This repository is now a pure Rust crate (`zalo-client`, v0.1.0) at the repository root. The previous TypeScript/Node.js implementation and npm packaging are no longer part of this tree.
+This repository is now a pure Rust crate (`zalo-rs`, v0.1.0) at the repository root. The previous TypeScript/Node.js implementation and npm packaging are no longer part of this tree.
 
 ## Who this guide is for
 
-- Users of the old TypeScript/Node `zalo-client` / `zca-js` codebase who want to move to the Rust crate.
+- Users of the old TypeScript/Node `zalo-rs` / `zca-js` codebase who want to move to the Rust crate.
 - Contributors updating old docs, scripts, or examples that still assume `npm`, `bun`, `tsc`, `src/*.ts`, or a `rust-client/` subdirectory.
 
 ## Key changes

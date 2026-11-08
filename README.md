@@ -1,4 +1,4 @@
-# zalo-client
+# zalo-rs
 
 Rust client for the reverse-engineered Zalo web protocol.
 
@@ -6,7 +6,7 @@ Rust client for the reverse-engineered Zalo web protocol.
 
 ## Status
 
-`zalo-client` is an early Rust rewrite (v0.1.0) of the previous TypeScript/Node codebase. The crate lives at the repository root and is built with Cargo.
+`zalo-rs` is an early Rust rewrite (v0.1.0) of the previous TypeScript/Node codebase. The crate lives at the repository root and is built with Cargo.
 
 Current implementation includes:
 
@@ -32,7 +32,7 @@ This crate is not published to crates.io from this repository. Add it as a Git o
 
 ```toml
 [dependencies]
-zalo-client = { git = "https://github.com/DEVTRAN07/Zalo-Client" }
+zalo-rs = { git = "https://github.com/DEVTRAN07/Zalo-rs" }
 tokio = { version = "1", features = ["full"] }
 serde_json = "1"
 ```
@@ -41,7 +41,7 @@ For local development:
 
 ```toml
 [dependencies]
-zalo-client = { path = "../zalo-client" }
+zalo-rs = { path = "../zalo-rs" }
 ```
 
 ## Quick start

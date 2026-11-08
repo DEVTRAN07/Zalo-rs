@@ -2,7 +2,7 @@
 
 ## Supported Versions
 
-`zalo-client` is currently an early Rust crate (`0.1.x`) under active development in this repository.
+`zalo-rs` is currently an early Rust crate (`0.1.x`) under active development in this repository.
 
 | Version | Supported |
 | --- | --- |
@@ -23,7 +23,7 @@ Please report privately with:
 - impact assessment
 - any suggested mitigation
 
-If the repository has GitHub private vulnerability reporting enabled, use that channel first. Otherwise, contact the maintainers through GitHub privately and include `[SECURITY] zalo-client` in the subject or message.
+If the repository has GitHub private vulnerability reporting enabled, use that channel first. Otherwise, contact the maintainers through GitHub privately and include `[SECURITY] zalo-rs` in the subject or message.
 
 ### Response expectations
 

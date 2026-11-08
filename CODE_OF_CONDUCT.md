@@ -135,9 +135,9 @@ For answers to common questions about this code of conduct, see the FAQ at
 https://www.contributor-covenant.org/faq. Translations are available at
 https://www.contributor-covenant.org/translations.
 
-## Special Considerations for zalo-client
+## Special Considerations for zalo-rs
 
-`zalo-client` is an unofficial Rust crate that interacts with the reverse-engineered Zalo web protocol. Project-specific expectations:
+`zalo-rs` is an unofficial Rust crate that interacts with the reverse-engineered Zalo web protocol. Project-specific expectations:
 
 -   **Respect Zalo's terms and policies:** Be aware that unofficial clients may violate platform rules.
 -   **Do not promote account abuse:** Do not share instructions intended to evade bans, spam users, harvest data, or bypass security controls.

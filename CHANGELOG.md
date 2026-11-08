@@ -35,7 +35,7 @@ Complete rewrite of the library internals, previously published as `zca-js` (v2.
 
 ### Added
 
--   **`zalo-client` package name** with `ZaloClient` (login entry point) and `ZaloApi` (endpoint aggregate).
+-   **`zalo-rs` package name** with `ZaloClient` (login entry point) and `ZaloApi` (endpoint aggregate).
 -   **HTTP retry policy** (`retry` option): exponential backoff with full jitter, `Retry-After` support on `429`/`503`, retry on `408/425/429/500/502/503/504` and network failures. Only idempotent methods (`GET`, `HEAD`) retry by default so a message can never be sent twice.
 -   **Per-request timeout** (`retry.timeoutMs`, default 60s) via `AbortController`; hung requests fail instead of blocking the process forever.
 -   **Leveled logging**: `logging` now accepts `"silent" | "error" | "warn" | "info" | "verbose"` in addition to `true`/`false`, with colored output.

@@ -1,6 +1,6 @@
-//! `zalo-client` — Rust port of the Zalo web API protocol.
+//! `zalo-rs` — Rust port of the Zalo web API protocol.
 //!
-//! Reverse-engineered from the TypeScript `zalo-client` implementation.
+//! Reverse-engineered from the TypeScript `zalo-rs` implementation.
 //! Provides authentication, HTTP API calls, and a WebSocket listener for
 //! real-time events.
 

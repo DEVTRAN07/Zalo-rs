@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 description = "Rust client for Zalo web API (reverse-engineered protocol)"
 license = "MIT"
-repository = "https://github.com/DEVTRAN07/Zalo-Client"
+repository = "https://github.com/DEVTRAN07/Zalo-rs"
 
 [dependencies]
 tokio = { version = "1", features = ["full"] }
