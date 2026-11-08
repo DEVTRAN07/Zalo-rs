@@ -126,6 +126,10 @@ pub mod send_delivered_event;
 pub mod send_friend_request;
 pub mod send_link;
 pub mod send_report;
+pub mod send_sticker;
+pub mod send_typing_event;
+pub mod send_video;
+pub mod send_voice;
 
 pub mod forward_message;
 pub mod login_qr;
@@ -145,6 +149,20 @@ pub mod update_bank_account;
 pub mod update_catalog;
 pub mod update_group_settings;
 
+pub mod listen;
+pub mod upgrade_group_to_community;
+pub mod upload_attachment;
+pub mod upload_product_photo;
+pub mod update_hidden_convers_pin;
+pub mod update_labels;
+pub mod update_lang;
+pub mod update_product_catalog;
+pub mod update_profile;
+pub mod update_profile_bio;
+pub mod update_quick_message;
+pub mod update_settings;
+pub mod vote_poll;
+
 pub mod get_user_info;
 pub mod keep_alive;
 pub mod login;
@@ -154,7 +172,7 @@ use serde_json::Value;
 
 use crate::context::ContextSession;
 use crate::errors::Result;
-use crate::models::r#enum::{AvatarSize, ThreadType};
+use crate::models::r#enum::{AvatarSize, DestType, ThreadType};
 use crate::ws::Listener;
 
 pub use accept_friend_request::AcceptFriendRequestResponse;
@@ -279,6 +297,10 @@ pub use send_delivered_event::{DeliveredMessage, SendDeliveredEventResponse};
 pub use send_friend_request::SendFriendRequestResponse;
 pub use send_link::{SendLinkOptions, SendLinkResponse};
 pub use send_report::{ReportOptions, SendReportResponse};
+pub use send_sticker::{SendStickerPayload, SendStickerResponse};
+pub use send_typing_event::SendTypingEventResponse;
+pub use send_video::{SendVideoOptions, SendVideoResponse};
+pub use send_voice::{SendVoiceOptions, SendVoiceResponse};
 
 
 pub use forward_message::{ForwardMessagePayload, ForwardMessageResponse, ForwardMessageSuccess, ForwardMessageFail};
@@ -298,6 +320,19 @@ pub use update_auto_reply::{UpdateAutoReplyPayload, UpdateAutoReplyResponse};
 pub use update_bank_account::{UpdateBankAccountPayload, UpdateBankAccountResponse};
 pub use update_catalog::{UpdateCatalogPayload, UpdateCatalogResponse};
 pub use update_group_settings::{UpdateGroupSettingsOptions, UpdateGroupSettingsResponse};
+pub use listen::{ListenOptions, ListenResponse};
+pub use upgrade_group_to_community::UpgradeGroupToCommunityResponse;
+pub use upload_attachment::{AttachmentSource, UploadAttachmentResponse};
+pub use upload_product_photo::{ProductPhotoSource, UploadProductPhotoPayload, UploadProductPhotoResponse};
+pub use update_hidden_convers_pin::UpdateHiddenConversPinResponse;
+pub use update_labels::{UpdateLabelsPayload, UpdateLabelsResponse};
+pub use update_lang::{UpdateLangAvailableLanguages, UpdateLangResponse};
+pub use update_product_catalog::{UpdateProductCatalogPayload, UpdateProductCatalogResponse};
+pub use update_profile::{UpdateProfileBiz, UpdateProfileInfo, UpdateProfilePayload, UpdateProfileResponse};
+pub use update_profile_bio::UpdateProfileBioResponse;
+pub use update_quick_message::{UpdateQuickMessagePayload, UpdateQuickMessageResponse};
+pub use update_settings::{UpdateSettingsResponse, UpdateSettingsType};
+pub use vote_poll::VotePollResponse;
 
 /// High-level API bound to an authenticated session.
 #[derive(Clone)]
@@ -974,4 +1009,121 @@ impl ZaloApi {
         update_group_settings::update_group_settings(self.api_client(), options, group_id).await
     }
 
+    // --- batch 5 ---
+    pub fn create_listener(&self) -> Listener {
+        listen::create_listener(self.api_client(), self.ws_urls.clone())
+    }
+
+    pub async fn listen(&self, options: Option<ListenOptions>) -> Result<ListenResponse> {
+        listen::listen(self.api_client(), options).await
+    }
+
+    pub async fn send_sticker(
+        &self,
+        sticker: SendStickerPayload,
+        thread_id: &str,
+        thread_type: ThreadType,
+    ) -> Result<SendStickerResponse> {
+        send_sticker::send_sticker(self.api_client(), sticker, thread_id, thread_type).await
+    }
+
+    pub async fn send_typing_event(
+        &self,
+        thread_id: &str,
+        thread_type: ThreadType,
+        dest_type: Option<DestType>,
+    ) -> Result<SendTypingEventResponse> {
+        send_typing_event::send_typing_event(self.api_client(), thread_id, thread_type, dest_type).await
+    }
+
+    pub async fn send_video(
+        &self,
+        options: SendVideoOptions,
+        thread_id: &str,
+        thread_type: ThreadType,
+    ) -> Result<SendVideoResponse> {
+        send_video::send_video(self.api_client(), options, thread_id, thread_type).await
+    }
+
+    pub async fn send_voice(
+        &self,
+        options: SendVoiceOptions,
+        thread_id: &str,
+        thread_type: ThreadType,
+    ) -> Result<SendVoiceResponse> {
+        send_voice::send_voice(self.api_client(), options, thread_id, thread_type).await
+    }
+
+    pub async fn update_hidden_convers_pin(&self, pin: &str) -> Result<UpdateHiddenConversPinResponse> {
+        update_hidden_convers_pin::update_hidden_convers_pin(self.api_client(), pin).await
+    }
+
+    pub async fn update_labels(&self, payload: UpdateLabelsPayload) -> Result<UpdateLabelsResponse> {
+        update_labels::update_labels(self.api_client(), payload).await
+    }
+
+    pub async fn update_lang(
+        &self,
+        language: Option<UpdateLangAvailableLanguages>,
+    ) -> Result<UpdateLangResponse> {
+        update_lang::update_lang(self.api_client(), language).await
+    }
+
+    pub async fn update_product_catalog(
+        &self,
+        payload: UpdateProductCatalogPayload,
+    ) -> Result<UpdateProductCatalogResponse> {
+        update_product_catalog::update_product_catalog(self.api_client(), payload).await
+    }
+
+    pub async fn update_profile(&self, payload: UpdateProfilePayload) -> Result<UpdateProfileResponse> {
+        update_profile::update_profile(self.api_client(), payload).await
+    }
+
+    pub async fn update_profile_bio(&self, status: &str) -> Result<UpdateProfileBioResponse> {
+        update_profile_bio::update_profile_bio(self.api_client(), status).await
+    }
+
+    pub async fn update_quick_message(
+        &self,
+        payload: UpdateQuickMessagePayload,
+        item_id: i64,
+    ) -> Result<UpdateQuickMessageResponse> {
+        update_quick_message::update_quick_message(self.api_client(), payload, item_id).await
+    }
+
+    pub async fn update_settings(
+        &self,
+        setting_type: UpdateSettingsType,
+        value: i32,
+    ) -> Result<UpdateSettingsResponse> {
+        update_settings::update_settings(self.api_client(), setting_type, value).await
+    }
+
+    pub async fn upgrade_group_to_community(
+        &self,
+        group_id: &str,
+    ) -> Result<UpgradeGroupToCommunityResponse> {
+        upgrade_group_to_community::upgrade_group_to_community(self.api_client(), group_id).await
+    }
+
+    pub async fn upload_attachment(
+        &self,
+        sources: Vec<AttachmentSource>,
+        thread_id: &str,
+        thread_type: ThreadType,
+    ) -> Result<UploadAttachmentResponse> {
+        upload_attachment::upload_attachment(self.api_client(), sources, thread_id, thread_type).await
+    }
+
+    pub async fn upload_product_photo(
+        &self,
+        payload: UploadProductPhotoPayload,
+    ) -> Result<UploadProductPhotoResponse> {
+        upload_product_photo::upload_product_photo(self.api_client(), payload).await
+    }
+
+    pub async fn vote_poll(&self, poll_id: i64, option_ids: Vec<i64>) -> Result<VotePollResponse> {
+        vote_poll::vote_poll(self.api_client(), poll_id, option_ids).await
+    }
 }
