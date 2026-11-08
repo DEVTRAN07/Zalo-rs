@@ -390,6 +390,29 @@ async fn handle_binary_message(
             }
             let _ = event_tx.send(ListenerEvent::SeenDelivered(event_data));
         }
+        (621, _) => {
+            // cmd 621 is a newer Zalo event type not present in the original
+            // TypeScript source. Its payload is encrypted (base64) and must be
+            // decoded with the cipher key. Unlike other events, the `encrypt`
+            // field may be 0 or missing, so we attempt decode unconditionally
+            // here and emit the decrypted content as a Raw event.
+            let decoded = if let Value::Object(map) = &parsed_data {
+                let key_guard = cipher_key.lock().await;
+                match decode_event_data(map, key_guard.as_deref()).await {
+                    Ok(Some(DecodedEventData::Object(m))) => Value::Object(m),
+                    Ok(Some(DecodedEventData::Value(v))) => v,
+                    Ok(None) | Err(_) => parsed_data.clone(),
+                }
+            } else {
+                parsed_data.clone()
+            };
+            let _ = event_tx.send(ListenerEvent::Raw(WsPayload {
+                version,
+                cmd,
+                sub_cmd,
+                data: decoded,
+            }));
+        }
         _ => {
             let _ = event_tx.send(ListenerEvent::Raw(payload));
         }
