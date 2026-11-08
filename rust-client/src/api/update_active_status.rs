@@ -1,0 +1,35 @@
+use serde::{Deserialize, Serialize};
+
+use crate::api::client::ApiClient;
+use crate::errors::{Result, ZaloApiError, ZaloError};
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct UpdateActiveStatusResponse {
+    #[serde(default)]
+    pub status: bool,
+}
+
+/// Update active status.
+pub async fn update_active_status(
+    client: &ApiClient,
+    active: bool,
+) -> Result<UpdateActiveStatusResponse> {
+    let path = if active {
+        "/api/social/profile/ping"
+    } else {
+        "/api/social/profile/deactive"
+    };
+    let base_url = client.service_url("profile", path)?;
+
+    let params = serde_json::json!({
+        "status": if active { 1 } else { 0 },
+        "imei": client.ctx().imei,
+    });
+
+    let encrypted = client
+        .encode_aes(&params.to_string())
+        .ok_or_else(|| ZaloError::Api(ZaloApiError::new("Failed to encrypt params")))?;
+    let url = client.make_url(&base_url, &[("params", encrypted)], true)?;
+    let res = client.request_get(&url).await?;
+    client.resolve(res).await
+}

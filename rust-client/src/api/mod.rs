@@ -127,6 +127,24 @@ pub mod send_friend_request;
 pub mod send_link;
 pub mod send_report;
 
+pub mod forward_message;
+pub mod login_qr;
+pub mod send_seen_event;
+pub mod set_hidden_conversations;
+pub mod set_mute;
+pub mod set_pinned_conversations;
+pub mod share_poll;
+pub mod unblock_user;
+pub mod undo;
+pub mod undo_friend_request;
+pub mod update_active_status;
+pub mod update_archived_chat_list;
+pub mod update_auto_delete_chat;
+pub mod update_auto_reply;
+pub mod update_bank_account;
+pub mod update_catalog;
+pub mod update_group_settings;
+
 pub mod get_user_info;
 pub mod keep_alive;
 pub mod login;
@@ -261,6 +279,25 @@ pub use send_delivered_event::{DeliveredMessage, SendDeliveredEventResponse};
 pub use send_friend_request::SendFriendRequestResponse;
 pub use send_link::{SendLinkOptions, SendLinkResponse};
 pub use send_report::{ReportOptions, SendReportResponse};
+
+
+pub use forward_message::{ForwardMessagePayload, ForwardMessageResponse, ForwardMessageSuccess, ForwardMessageFail};
+pub use login_qr::{LoginQrResult, QrGenerateResponse, QrScanResponse, QrConfirmResponse, QrUserInfoResponse, login_qr_start, load_login_page, get_login_info as get_login_info_qr, verify_client as verify_client_qr, generate_qr, waiting_scan, waiting_confirm, check_session as check_session_qr, get_user_info_qr};
+pub use send_seen_event::{SendSeenEventMessageParams, SendSeenEventResponse};
+pub use set_hidden_conversations::SetHiddenConversationsResponse;
+pub use set_mute::{MuteAction, MuteDuration, MuteDurationPreset, SetMuteResponse};
+pub use set_pinned_conversations::SetPinnedConversationsResponse;
+pub use share_poll::SharePollResponse;
+pub use unblock_user::UnblockUserResponse;
+pub use undo::{UndoPayload, UndoResponse};
+pub use undo_friend_request::UndoFriendRequestResponse;
+pub use update_active_status::UpdateActiveStatusResponse;
+pub use update_archived_chat_list::{UpdateArchivedChatListTarget, UpdateArchivedChatListResponse};
+pub use update_auto_delete_chat::{ChatTTL, UpdateAutoDeleteChatResponse};
+pub use update_auto_reply::{UpdateAutoReplyPayload, UpdateAutoReplyResponse};
+pub use update_bank_account::{UpdateBankAccountPayload, UpdateBankAccountResponse};
+pub use update_catalog::{UpdateCatalogPayload, UpdateCatalogResponse};
+pub use update_group_settings::{UpdateGroupSettingsOptions, UpdateGroupSettingsResponse};
 
 /// High-level API bound to an authenticated session.
 #[derive(Clone)]
@@ -826,6 +863,115 @@ impl ZaloApi {
 
     pub async fn send_report(&self, options: ReportOptions, thread_id: &str, thread_type: ThreadType) -> Result<SendReportResponse> {
         send_report::send_report(self.api_client(), options, thread_id, thread_type).await
+    }
+
+
+    // --- batch 4 ---
+    pub async fn forward_message(
+        &self,
+        payload: ForwardMessagePayload,
+        thread_ids: &[String],
+        thread_type: ThreadType,
+    ) -> Result<ForwardMessageResponse> {
+        forward_message::forward_message(self.api_client(), payload, thread_ids, thread_type).await
+    }
+
+    pub async fn send_seen_event(
+        &self,
+        messages: &[SendSeenEventMessageParams],
+        thread_type: ThreadType,
+    ) -> Result<SendSeenEventResponse> {
+        send_seen_event::send_seen_event(self.api_client(), messages, thread_type).await
+    }
+
+    pub async fn set_hidden_conversations(
+        &self,
+        hidden: bool,
+        thread_ids: &[String],
+        thread_type: ThreadType,
+    ) -> Result<SetHiddenConversationsResponse> {
+        set_hidden_conversations::set_hidden_conversations(self.api_client(), hidden, thread_ids, thread_type).await
+    }
+
+    pub async fn set_mute(
+        &self,
+        duration: MuteDuration,
+        action: MuteAction,
+        thread_id: &str,
+        thread_type: ThreadType,
+    ) -> Result<SetMuteResponse> {
+        set_mute::set_mute(self.api_client(), duration, action, thread_id, thread_type).await
+    }
+
+    pub async fn set_pinned_conversations(
+        &self,
+        pinned: bool,
+        thread_ids: &[String],
+        thread_type: ThreadType,
+    ) -> Result<SetPinnedConversationsResponse> {
+        set_pinned_conversations::set_pinned_conversations(self.api_client(), pinned, thread_ids, thread_type).await
+    }
+
+    pub async fn share_poll(&self, poll_id: i64) -> Result<SharePollResponse> {
+        share_poll::share_poll(self.api_client(), poll_id).await
+    }
+
+    pub async fn unblock_user(&self, user_id: &str) -> Result<UnblockUserResponse> {
+        unblock_user::unblock_user(self.api_client(), user_id).await
+    }
+
+    pub async fn undo(
+        &self,
+        payload: UndoPayload,
+        thread_id: &str,
+        thread_type: ThreadType,
+    ) -> Result<UndoResponse> {
+        undo::undo(self.api_client(), payload, thread_id, thread_type).await
+    }
+
+    pub async fn undo_friend_request(&self, friend_id: &str) -> Result<UndoFriendRequestResponse> {
+        undo_friend_request::undo_friend_request(self.api_client(), friend_id).await
+    }
+
+    pub async fn update_active_status(&self, active: bool) -> Result<UpdateActiveStatusResponse> {
+        update_active_status::update_active_status(self.api_client(), active).await
+    }
+
+    pub async fn update_archived_chat_list(
+        &self,
+        is_archived: bool,
+        conversations: &[UpdateArchivedChatListTarget],
+    ) -> Result<UpdateArchivedChatListResponse> {
+        update_archived_chat_list::update_archived_chat_list(self.api_client(), is_archived, conversations).await
+    }
+
+    pub async fn update_auto_delete_chat(
+        &self,
+        ttl: ChatTTL,
+        thread_id: &str,
+        thread_type: ThreadType,
+    ) -> Result<UpdateAutoDeleteChatResponse> {
+        update_auto_delete_chat::update_auto_delete_chat(self.api_client(), ttl, thread_id, thread_type).await
+    }
+
+    pub async fn update_auto_reply(&self, payload: UpdateAutoReplyPayload) -> Result<UpdateAutoReplyResponse> {
+        update_auto_reply::update_auto_reply(self.api_client(), payload).await
+    }
+
+    pub async fn update_bank_account(&self, payload: UpdateBankAccountPayload) -> Result<UpdateBankAccountResponse> {
+        update_bank_account::update_bank_account(self.api_client(), payload).await
+    }
+
+    pub async fn update_catalog(&self, payload: UpdateCatalogPayload) -> Result<UpdateCatalogResponse> {
+        update_catalog::update_catalog(self.api_client(), payload).await
+    }
+
+    pub async fn update_group_settings(
+        &self,
+        options: UpdateGroupSettingsOptions,
+        group_id: &str,
+    ) -> Result<UpdateGroupSettingsResponse> {
+        update_group_settings::update_group_settings(self.api_client(), options, group_id).await
     }
 
 }
