@@ -305,7 +305,7 @@ async fn handle_binary_message(
 }
 
 /// Encode a WS payload into the binary format: [ver, cmd_lo, cmd_hi, subCmd] + JSON bytes.
-fn encode_payload(version: u8, cmd: u16, sub_cmd: u8, data: &Value) -> Vec<u8> {
+pub fn encode_payload(version: u8, cmd: u16, sub_cmd: u8, data: &Value) -> Vec<u8> {
     let json = serde_json::to_vec(data).unwrap_or_default();
     let cmd_bytes = cmd.to_le_bytes();
     let mut buf = Vec::with_capacity(4 + json.len());
