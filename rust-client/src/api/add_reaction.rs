@@ -3,10 +3,8 @@
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
-use crate::api::get_user_info::service_url;
-use crate::context::ContextSession;
+use crate::api::client::ApiClient;
 use crate::errors::{Result, ZaloApiError, ZaloError};
-use crate::factory::FactoryUtils;
 use crate::models::r#enum::ThreadType;
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -111,8 +109,7 @@ fn reaction_spec(icon: &Value) -> Option<(i64, i64, String)> {
 /// Add reaction to a message. `icon` can be a reaction name (e.g. "HEART")
 /// or a custom object with `rType`, `source`, `icon`.
 pub async fn add_reaction(
-    ctx: &ContextSession,
-    service_map: &Value,
+    client: &ApiClient,
     icon: Value,
     dest: AddReactionDestination,
 ) -> Result<Value> {
@@ -124,9 +121,8 @@ pub async fn add_reaction(
 
     let is_group = matches!(dest.thread_type, ThreadType::Group);
     let path = if is_group { "/api/group/reaction" } else { "/api/message/reaction" };
-    let base_url = service_url(service_map, "reaction", path)?;
-    let utils = FactoryUtils::new(ctx);
-    let url = utils.make_url(&base_url, &[], true)?;
+    let url = client.service_url("reaction", path)?;
+    let url = client.make_url(&url, &[], true)?;
 
     let react_msg = serde_json::json!({
         "rMsg": [{
@@ -152,14 +148,10 @@ pub async fn add_reaction(
     });
     if is_group {
         params["grid"] = Value::String(dest.thread_id);
-        params["imei"] = Value::String(ctx.imei.clone());
+        params["imei"] = Value::String(client.ctx().imei.clone());
     } else {
         params["toid"] = Value::String(dest.thread_id);
     }
 
-    let encrypted = utils
-        .encode_aes(&params.to_string())
-        .ok_or_else(|| ZaloError::Api(ZaloApiError::new("Failed to encrypt message")))?;
-    let res = utils.request_post(&url, &[("params", encrypted)]).await?;
-    utils.resolve(res).await
+    client.post_encrypted(&url, &params).await
 }

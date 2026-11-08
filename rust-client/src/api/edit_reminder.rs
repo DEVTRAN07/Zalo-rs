@@ -3,10 +3,8 @@
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
-use crate::api::get_user_info::service_url;
-use crate::context::ContextSession;
+use crate::api::client::ApiClient;
 use crate::errors::{Result, ZaloApiError, ZaloError};
-use crate::factory::FactoryUtils;
 use crate::models::r#enum::ThreadType;
 use crate::models::reminder::ReminderRepeatMode;
 
@@ -31,21 +29,19 @@ pub struct EditReminderResponse {
 
 /// Edit an existing reminder.
 pub async fn edit_reminder(
-    ctx: &ContextSession,
-    service_map: &Value,
+    client: &ApiClient,
     options: EditReminderOptions,
     thread_id: &str,
     thread_type: ThreadType,
 ) -> Result<EditReminderResponse> {
-    let utils = FactoryUtils::new(ctx);
     let is_group = matches!(thread_type, ThreadType::Group);
     let path = if is_group {
         "/api/board/topic/updatev2"
     } else {
         "/api/board/oneone/update"
     };
-    let base_url = service_url(service_map, "group_board", path)?;
-    let url = utils.make_url(&base_url, &[], true)?;
+    let url = client.service_url("group_board", path)?;
+    let url = client.make_url(&url, &[], true)?;
 
     let now = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
@@ -66,7 +62,7 @@ pub async fn edit_reminder(
             "params": serde_json::json!({ "title": options.title }).to_string(),
             "topicId": options.topic_id,
             "repeat": repeat_val,
-            "imei": ctx.imei,
+            "imei": client.ctx().imei,
             "pinAct": 2,
         })
     } else {
@@ -86,10 +82,5 @@ pub async fn edit_reminder(
         })
     };
 
-    let encrypted = utils
-        .encode_aes(&params.to_string())
-        .ok_or_else(|| ZaloError::Api(ZaloApiError::new("Failed to encrypt params")))?;
-
-    let res = utils.request_post(&url, &[("params", encrypted)]).await?;
-    utils.resolve(res).await
+    client.post_encrypted(&url, &params).await
 }

@@ -2,10 +2,8 @@
 
 use serde::{Deserialize, Serialize};
 
-use crate::api::get_user_info::service_url;
-use crate::context::ContextSession;
+use crate::api::client::ApiClient;
 use crate::errors::{Result, ZaloApiError, ZaloError};
-use crate::factory::FactoryUtils;
 use crate::models::r#enum::ThreadType;
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -26,21 +24,19 @@ pub struct DeleteChatLastMessage {
 
 /// Delete a conversation.
 pub async fn delete_chat(
-    ctx: &ContextSession,
-    service_map: &serde_json::Value,
+    client: &ApiClient,
     last_message: DeleteChatLastMessage,
     thread_id: &str,
     thread_type: ThreadType,
 ) -> Result<DeleteChatResponse> {
-    let utils = FactoryUtils::new(ctx);
     let is_group = matches!(thread_type, ThreadType::Group);
     let (service, path) = if is_group {
         ("group", "/api/group/deleteconver")
     } else {
         ("chat", "/api/message/deleteconver")
     };
-    let base = service_url(service_map, service, path)?;
-    let url = utils.make_url(&base, &[("nretry", "0".to_string())], true)?;
+    let base = client.service_url(service, path)?;
+    let url = client.make_url(&base, &[("nretry", "0".to_string())], true)?;
 
     let ts = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
@@ -58,7 +54,7 @@ pub async fn delete_chat(
         "cliMsgId": ts,
         "conver": conver,
         "onlyMe": 1,
-        "imei": ctx.imei,
+        "imei": client.ctx().imei,
     });
     if is_group {
         params["grid"] = serde_json::Value::String(thread_id.to_string());
@@ -66,9 +62,9 @@ pub async fn delete_chat(
         params["toid"] = serde_json::Value::String(thread_id.to_string());
     }
 
-    let encrypted = utils
+    let encrypted = client
         .encode_aes(&params.to_string())
         .ok_or_else(|| ZaloError::Api(ZaloApiError::new("Failed to encrypt params")))?;
-    let res = utils.request_post(&url, &[("params", encrypted)]).await?;
-    utils.resolve(res).await
+    let res = client.request_post(&url, &[("params", encrypted)]).await?;
+    client.resolve(res).await
 }

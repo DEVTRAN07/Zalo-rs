@@ -294,13 +294,21 @@ impl ZaloApi {
         Listener::new(self.ctx.clone(), self.ws_urls.clone())
     }
 
+
+    /// Build an idiomatic [`ApiClient`] bound to this session.
+    fn api_client(&self) -> ApiClient {
+        ApiClient::new(self.ctx.clone(), self.zpw_service_map.clone())
+    }
+
     // --- existing ---
     pub async fn get_user_info(&self, user_ids: &[&str]) -> Result<UserInfoResponse> {
-        get_user_info::get_user_info(&self.ctx, &self.zpw_service_map, user_ids).await
+        let client = self.api_client();
+        get_user_info::get_user_info(&client, user_ids).await
     }
 
     pub async fn keep_alive(&self) -> Result<KeepAliveResponse> {
-        keep_alive::keep_alive(&self.ctx, &self.zpw_service_map).await
+        let client = self.api_client();
+        keep_alive::keep_alive(&client).await
     }
 
     pub async fn send_message(
@@ -309,12 +317,14 @@ impl ZaloApi {
         thread_id: &str,
         thread_type: u8,
     ) -> Result<serde_json::Value> {
-        send_message::send_message(&self.ctx, &self.zpw_service_map, message, thread_id, thread_type).await
+        let client = self.api_client();
+        send_message::send_message(&client, message, thread_id, thread_type).await
     }
 
     // --- batch 1 ---
     pub async fn accept_friend_request(&self, friend_id: &str) -> Result<AcceptFriendRequestResponse> {
-        accept_friend_request::accept_friend_request(&self.ctx, &self.zpw_service_map, friend_id).await
+        let client = self.api_client();
+        accept_friend_request::accept_friend_request(&client, friend_id).await
     }
 
     pub async fn add_group_blocked_member(
@@ -322,7 +332,8 @@ impl ZaloApi {
         member_ids: Vec<String>,
         group_id: &str,
     ) -> Result<AddGroupBlockedMemberResponse> {
-        add_group_blocked_member::add_group_blocked_member(&self.ctx, &self.zpw_service_map, member_ids, group_id).await
+        let client = self.api_client();
+        add_group_blocked_member::add_group_blocked_member(&client, member_ids, group_id).await
     }
 
     pub async fn add_group_deputy(
@@ -330,23 +341,28 @@ impl ZaloApi {
         member_ids: Vec<String>,
         group_id: &str,
     ) -> Result<AddGroupDeputyResponse> {
-        add_group_deputy::add_group_deputy(&self.ctx, &self.zpw_service_map, member_ids, group_id).await
+        let client = self.api_client();
+        add_group_deputy::add_group_deputy(&client, member_ids, group_id).await
     }
 
     pub async fn add_poll_options(&self, payload: AddPollOptionsPayload) -> Result<AddPollOptionsResponse> {
-        add_poll_options::add_poll_options(&self.ctx, &self.zpw_service_map, payload).await
+        let client = self.api_client();
+        add_poll_options::add_poll_options(&client, payload).await
     }
 
     pub async fn add_quick_message(&self, payload: AddQuickMessagePayload) -> Result<AddQuickMessageResponse> {
-        add_quick_message::add_quick_message(&self.ctx, &self.zpw_service_map, payload).await
+        let client = self.api_client();
+        add_quick_message::add_quick_message(&client, payload).await
     }
 
     pub async fn add_reaction(&self, icon: Value, dest: AddReactionDestination) -> Result<Value> {
-        add_reaction::add_reaction(&self.ctx, &self.zpw_service_map, icon, dest).await
+        let client = self.api_client();
+        add_reaction::add_reaction(&client, icon, dest).await
     }
 
     pub async fn add_unread_mark(&self, thread_id: &str, thread_type: ThreadType) -> Result<AddUnreadMarkResponse> {
-        add_unread_mark::add_unread_mark(&self.ctx, &self.zpw_service_map, thread_id, thread_type).await
+        let client = self.api_client();
+        add_unread_mark::add_unread_mark(&client, thread_id, thread_type).await
     }
 
     pub async fn add_user_to_group(
@@ -354,63 +370,78 @@ impl ZaloApi {
         member_ids: Vec<String>,
         group_id: &str,
     ) -> Result<AddUserToGroupResponse> {
-        add_user_to_group::add_user_to_group(&self.ctx, &self.zpw_service_map, member_ids, group_id).await
+        let client = self.api_client();
+        add_user_to_group::add_user_to_group(&client, member_ids, group_id).await
     }
 
     pub async fn block_user(&self, user_id: &str) -> Result<BlockUserResponse> {
-        block_user::block_user(&self.ctx, &self.zpw_service_map, user_id).await
+        let client = self.api_client();
+        block_user::block_user(&client, user_id).await
     }
 
     pub async fn block_view_feed(&self, is_block_feed: bool, user_id: &str) -> Result<BlockViewFeedResponse> {
-        block_view_feed::block_view_feed(&self.ctx, &self.zpw_service_map, is_block_feed, user_id).await
+        let client = self.api_client();
+        block_view_feed::block_view_feed(&client, is_block_feed, user_id).await
     }
 
     pub async fn change_account_avatar(&self, avatar_path: &str) -> Result<ChangeAccountAvatarResponse> {
-        change_account_avatar::change_account_avatar(&self.ctx, &self.zpw_service_map, avatar_path).await
+        let client = self.api_client();
+        change_account_avatar::change_account_avatar(&client, avatar_path).await
     }
 
     pub async fn change_friend_alias(&self, alias: &str, friend_id: &str) -> Result<ChangeFriendAliasResponse> {
-        change_friend_alias::change_friend_alias(&self.ctx, &self.zpw_service_map, alias, friend_id).await
+        let client = self.api_client();
+        change_friend_alias::change_friend_alias(&client, alias, friend_id).await
     }
 
     pub async fn change_group_avatar(&self, avatar_path: &str, group_id: &str) -> Result<ChangeGroupAvatarResponse> {
-        change_group_avatar::change_group_avatar(&self.ctx, &self.zpw_service_map, avatar_path, group_id).await
+        let client = self.api_client();
+        change_group_avatar::change_group_avatar(&client, avatar_path, group_id).await
     }
 
     pub async fn change_group_name(&self, name: &str, group_id: &str) -> Result<ChangeGroupNameResponse> {
-        change_group_name::change_group_name(&self.ctx, &self.zpw_service_map, name, group_id).await
+        let client = self.api_client();
+        change_group_name::change_group_name(&client, name, group_id).await
     }
 
     pub async fn change_group_owner(&self, member_id: &str, group_id: &str) -> Result<ChangeGroupOwnerResponse> {
-        change_group_owner::change_group_owner(&self.ctx, &self.zpw_service_map, member_id, group_id).await
+        let client = self.api_client();
+        change_group_owner::change_group_owner(&client, member_id, group_id).await
     }
 
     pub async fn create_auto_reply(&self, payload: CreateAutoReplyPayload) -> Result<CreateAutoReplyResponse> {
-        create_auto_reply::create_auto_reply(&self.ctx, &self.zpw_service_map, payload).await
+        let client = self.api_client();
+        create_auto_reply::create_auto_reply(&client, payload).await
     }
 
     pub async fn create_bank_account(&self, payload: CreateBankAccountPayload) -> Result<CreateBankAccountResponse> {
-        create_bank_account::create_bank_account(&self.ctx, &self.zpw_service_map, payload).await
+        let client = self.api_client();
+        create_bank_account::create_bank_account(&client, payload).await
     }
 
     pub async fn create_catalog(&self, catalog_name: &str) -> Result<CreateCatalogResponse> {
-        create_catalog::create_catalog(&self.ctx, &self.zpw_service_map, catalog_name).await
+        let client = self.api_client();
+        create_catalog::create_catalog(&client, catalog_name).await
     }
 
     pub async fn create_group(&self, options: CreateGroupOptions) -> Result<CreateGroupResponse> {
-        create_group::create_group(&self.ctx, &self.zpw_service_map, options).await
+        let client = self.api_client();
+        create_group::create_group(&client, options).await
     }
 
     pub async fn create_note(&self, options: CreateNoteOptions, group_id: &str) -> Result<CreateNoteResponse> {
-        create_note::create_note(&self.ctx, &self.zpw_service_map, options, group_id).await
+        let client = self.api_client();
+        create_note::create_note(&client, options, group_id).await
     }
 
     pub async fn create_poll(&self, options: CreatePollOptions, group_id: &str) -> Result<CreatePollResponse> {
-        create_poll::create_poll(&self.ctx, &self.zpw_service_map, options, group_id).await
+        let client = self.api_client();
+        create_poll::create_poll(&client, options, group_id).await
     }
 
     pub async fn create_product_catalog(&self, payload: CreateProductCatalogPayload) -> Result<CreateProductCatalogResponse> {
-        create_product_catalog::create_product_catalog(&self.ctx, &self.zpw_service_map, payload).await
+        let client = self.api_client();
+        create_product_catalog::create_product_catalog(&client, payload).await
     }
 
     pub async fn create_reminder(
@@ -419,23 +450,28 @@ impl ZaloApi {
         thread_id: &str,
         thread_type: ThreadType,
     ) -> Result<CreateReminderResponse> {
-        create_reminder::create_reminder(&self.ctx, &self.zpw_service_map, options, thread_id, thread_type).await
+        let client = self.api_client();
+        create_reminder::create_reminder(&client, options, thread_id, thread_type).await
     }
 
     pub async fn delete_auto_reply(&self, id: i64) -> Result<DeleteAutoReplyResponse> {
-        delete_auto_reply::delete_auto_reply(&self.ctx, &self.zpw_service_map, id).await
+        let client = self.api_client();
+        delete_auto_reply::delete_auto_reply(&client, id).await
     }
 
     pub async fn delete_avatar(&self, photo_ids: Vec<String>) -> Result<DeleteAvatarResponse> {
-        delete_avatar::delete_avatar(&self.ctx, &self.zpw_service_map, photo_ids).await
+        let client = self.api_client();
+        delete_avatar::delete_avatar(&client, photo_ids).await
     }
 
     pub async fn delete_bank_account(&self, payload: DeleteBankAccountPayload) -> Result<DeleteBankAccountResponse> {
-        delete_bank_account::delete_bank_account(&self.ctx, &self.zpw_service_map, payload).await
+        let client = self.api_client();
+        delete_bank_account::delete_bank_account(&client, payload).await
     }
 
     pub async fn delete_catalog(&self, catalog_id: &str) -> Result<DeleteCatalogResponse> {
-        delete_catalog::delete_catalog(&self.ctx, &self.zpw_service_map, catalog_id).await
+        let client = self.api_client();
+        delete_catalog::delete_catalog(&client, catalog_id).await
     }
 
     pub async fn delete_chat(
@@ -444,7 +480,8 @@ impl ZaloApi {
         thread_id: &str,
         thread_type: ThreadType,
     ) -> Result<DeleteChatResponse> {
-        delete_chat::delete_chat(&self.ctx, &self.zpw_service_map, last_message, thread_id, thread_type).await
+        let client = self.api_client();
+        delete_chat::delete_chat(&client, last_message, thread_id, thread_type).await
     }
 
     pub async fn delete_group_invite_box(
@@ -452,27 +489,33 @@ impl ZaloApi {
         group_ids: Vec<String>,
         block_future_invite: bool,
     ) -> Result<DeleteGroupInviteBoxResponse> {
-        delete_group_invite_box::delete_group_invite_box(&self.ctx, &self.zpw_service_map, group_ids, block_future_invite).await
+        let client = self.api_client();
+        delete_group_invite_box::delete_group_invite_box(&client, group_ids, block_future_invite).await
     }
 
     pub async fn delete_message(&self, dest: DeleteMessageDestination, only_me: bool) -> Result<DeleteMessageResponse> {
-        delete_message::delete_message(&self.ctx, &self.zpw_service_map, dest, only_me).await
+        let client = self.api_client();
+        delete_message::delete_message(&client, dest, only_me).await
     }
 
     pub async fn delete_product_catalog(&self, payload: DeleteProductCatalogPayload) -> Result<DeleteProductCatalogResponse> {
-        delete_product_catalog::delete_product_catalog(&self.ctx, &self.zpw_service_map, payload).await
+        let client = self.api_client();
+        delete_product_catalog::delete_product_catalog(&client, payload).await
     }
 
     pub async fn disable_group_link(&self, group_id: &str) -> Result<DisableGroupLinkResponse> {
-        disable_group_link::disable_group_link(&self.ctx, &self.zpw_service_map, group_id).await
+        let client = self.api_client();
+        disable_group_link::disable_group_link(&client, group_id).await
     }
 
     pub async fn disperse_group(&self, group_id: &str) -> Result<DisperseGroupResponse> {
-        disperse_group::disperse_group(&self.ctx, &self.zpw_service_map, group_id).await
+        let client = self.api_client();
+        disperse_group::disperse_group(&client, group_id).await
     }
 
     pub async fn edit_note(&self, options: EditNoteOptions, group_id: &str) -> Result<EditNoteResponse> {
-        edit_note::edit_note(&self.ctx, &self.zpw_service_map, options, group_id).await
+        let client = self.api_client();
+        edit_note::edit_note(&client, options, group_id).await
     }
 
     pub async fn edit_reminder(
@@ -481,19 +524,23 @@ impl ZaloApi {
         thread_id: &str,
         thread_type: ThreadType,
     ) -> Result<EditReminderResponse> {
-        edit_reminder::edit_reminder(&self.ctx, &self.zpw_service_map, options, thread_id, thread_type).await
+        let client = self.api_client();
+        edit_reminder::edit_reminder(&client, options, thread_id, thread_type).await
     }
 
     pub async fn enable_group_link(&self, group_id: &str) -> Result<EnableGroupLinkResponse> {
-        enable_group_link::enable_group_link(&self.ctx, &self.zpw_service_map, group_id).await
+        let client = self.api_client();
+        enable_group_link::enable_group_link(&client, group_id).await
     }
 
     pub async fn fetch_account_info(&self) -> Result<FetchAccountInfoResponse> {
-        fetch_account_info::fetch_account_info(&self.ctx, &self.zpw_service_map).await
+        let client = self.api_client();
+        fetch_account_info::fetch_account_info(&client).await
     }
 
     pub async fn find_user(&self, phone_number: &str, avatar_size: Option<AvatarSize>) -> Result<FindUserResponse> {
-        find_user::find_user(&self.ctx, &self.zpw_service_map, phone_number, avatar_size).await
+        let client = self.api_client();
+        find_user::find_user(&client, phone_number, avatar_size).await
     }
 
     pub async fn find_user_by_username(
@@ -501,7 +548,8 @@ impl ZaloApi {
         username: &str,
         avatar_size: Option<AvatarSize>,
     ) -> Result<FindUserByUsernameResponse> {
-        find_user_by_username::find_user_by_username(&self.ctx, &self.zpw_service_map, username, avatar_size).await
+        let client = self.api_client();
+        find_user_by_username::find_user_by_username(&client, username, avatar_size).await
     }
 
     pub fn get_own_id(&self) -> Result<GetOwnIdResponse> {

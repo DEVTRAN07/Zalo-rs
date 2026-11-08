@@ -3,9 +3,8 @@
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
-use crate::context::ContextSession;
+use crate::api::client::ApiClient;
 use crate::errors::{Result, ZaloApiError, ZaloError};
-use crate::factory::FactoryUtils;
 
 pub use super::url::service_url;
 
@@ -22,18 +21,13 @@ pub struct UserInfoResponse {
 /// Get user info using user id(s).
 ///
 /// `user_ids` are Zalo user IDs. The API expects `{id}_0` format internally.
-pub async fn get_user_info(
-    ctx: &ContextSession,
-    service_map: &Value,
-    user_ids: &[&str],
-) -> Result<UserInfoResponse> {
+pub async fn get_user_info(client: &ApiClient, user_ids: &[&str]) -> Result<UserInfoResponse> {
     if user_ids.is_empty() {
         return Err(ZaloError::Api(ZaloApiError::new("Missing user id")));
     }
 
-    let base_url = service_url(service_map, "profile", "/api/social/friend/getprofiles/v2")?;
-    let utils = FactoryUtils::new(ctx);
-    let service_url = utils.make_url(&base_url, &[], true)?;
+    let base_url = client.service_url("profile", "/api/social/friend/getprofiles/v2")?;
+    let url = client.make_url(&base_url, &[], true)?;
 
     let friend_pversion_map: Vec<String> = user_ids
         .iter()
@@ -46,7 +40,8 @@ pub async fn get_user_info(
         })
         .collect();
 
-    let phonebook_ver = ctx
+    let phonebook_ver = client
+        .ctx()
         .extra_ver
         .as_ref()
         .and_then(|v| v.get("phonebook"))
@@ -57,17 +52,10 @@ pub async fn get_user_info(
         "phonebook_version": phonebook_ver,
         "friend_pversion_map": friend_pversion_map,
         "avatar_size": 120,
-        "language": ctx.language,
+        "language": client.ctx().language,
         "show_online_status": 1,
-        "imei": ctx.imei,
+        "imei": client.ctx().imei,
     });
 
-    let encrypted = utils
-        .encode_aes(&params.to_string())
-        .ok_or_else(|| ZaloError::Api(ZaloApiError::new("Failed to encrypt params")))?;
-
-    let res = utils
-        .request_post(&service_url, &[("params", encrypted)])
-        .await?;
-    utils.resolve(res).await
+    client.post_encrypted(&url, &params).await
 }

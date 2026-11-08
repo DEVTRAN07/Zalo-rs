@@ -8,27 +8,26 @@
 use serde::de::DeserializeOwned;
 use serde_json::Value;
 
+use crate::api::client::ApiClient;
 use crate::context::ContextSession;
 use crate::errors::{Result, ZaloApiError, ZaloError};
-use crate::factory::FactoryUtils;
 
 /// Helper for making custom Zalo API calls with the standard encrypt/resolve flow.
-pub struct CustomApi<'a> {
-    ctx: &'a ContextSession,
-    service_map: &'a Value,
+pub struct CustomApi {
+    client: ApiClient,
 }
 
-impl<'a> CustomApi<'a> {
-    pub fn new(ctx: &'a ContextSession, service_map: &'a Value) -> Self {
-        Self { ctx, service_map }
+impl CustomApi {
+    pub fn new(client: ApiClient) -> Self {
+        Self { client }
     }
 
     pub fn service_map(&self) -> &Value {
-        self.service_map
+        self.client.service_map()
     }
 
     pub fn ctx(&self) -> &ContextSession {
-        self.ctx
+        self.client.ctx()
     }
 
     /// Make an encrypted POST request to a fully constructed URL.
@@ -37,12 +36,7 @@ impl<'a> CustomApi<'a> {
         url: &str,
         params: &Value,
     ) -> Result<T> {
-        let utils = FactoryUtils::new(self.ctx);
-        let encrypted = utils
-            .encode_aes(&params.to_string())
-            .ok_or_else(|| ZaloError::Api(ZaloApiError::new("Failed to encrypt params")))?;
-        let res = utils.request_post(url, &[("params", encrypted)]).await?;
-        utils.resolve(res).await
+        self.client.post_encrypted(url, params).await
     }
 
     /// Make an encrypted GET request with `params` in the query string.
@@ -51,12 +45,12 @@ impl<'a> CustomApi<'a> {
         base_url: &str,
         params: &Value,
     ) -> Result<T> {
-        let utils = FactoryUtils::new(self.ctx);
-        let encrypted = utils
+        let encrypted = self
+            .client
             .encode_aes(&params.to_string())
             .ok_or_else(|| ZaloError::Api(ZaloApiError::new("Failed to encrypt params")))?;
-        let url = utils.make_url(base_url, &[("params", encrypted)], true)?;
-        let res = utils.request_get(&url).await?;
-        utils.resolve(res).await
+        let url = self.client.make_url(base_url, &[("params", encrypted)], true)?;
+        let res = self.client.request_get(&url).await?;
+        self.client.resolve(res).await
     }
 }

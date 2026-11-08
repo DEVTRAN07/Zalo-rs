@@ -3,10 +3,8 @@
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
-use crate::api::get_user_info::service_url;
-use crate::context::ContextSession;
+use crate::api::client::ApiClient;
 use crate::errors::{Result, ZaloApiError, ZaloError};
-use crate::factory::FactoryUtils;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CreateGroupOptions {
@@ -35,8 +33,7 @@ pub struct CreateGroupResponse {
 
 /// Create a new group.
 pub async fn create_group(
-    ctx: &ContextSession,
-    service_map: &serde_json::Value,
+    client: &ApiClient,
     options: CreateGroupOptions,
 ) -> Result<CreateGroupResponse> {
     if options.members.is_empty() {
@@ -45,8 +42,8 @@ pub async fn create_group(
         )));
     }
 
-    let base_url = service_url(service_map, "group", "/api/group/create/v2")?;
-    let utils = FactoryUtils::new(ctx);
+    let url = client.service_url("group", "/api/group/create/v2")?;
+    let url = client.make_url(&url, &[], true)?;
 
     let client_id = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
@@ -67,18 +64,12 @@ pub async fn create_group(
         "membersTypes": member_types,
         "nameChanged": name_changed,
         "createLink": 1,
-        "clientLang": ctx.language,
-        "imei": ctx.imei,
+        "clientLang": client.ctx().language,
+        "imei": client.ctx().imei,
         "zsource": 601,
     });
 
-    let encrypted = utils
-        .encode_aes(&params.to_string())
-        .ok_or_else(|| ZaloError::Api(ZaloApiError::new("Failed to encrypt message")))?;
-
-    let url = utils.make_url(&base_url, &[("params", encrypted)], true)?;
-    let res = utils.request_post(&url, &[]).await?;
-    let data: CreateGroupResponse = utils.resolve(res).await?;
+    let data: CreateGroupResponse = client.post_encrypted(&url, &params).await?;
 
     // Avatar upload not implemented in rust-client; silently skip.
     let _ = options.avatar_source;

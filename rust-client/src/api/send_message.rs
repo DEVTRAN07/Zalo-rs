@@ -2,17 +2,14 @@
 
 use serde_json::Value;
 
-use crate::api::get_user_info::service_url;
-use crate::context::ContextSession;
+use crate::api::client::ApiClient;
 use crate::errors::{Result, ZaloApiError, ZaloError};
-use crate::factory::FactoryUtils;
 
 /// Send a text message.
 ///
 /// `thread_type`: 0 = user, 1 = group.
 pub async fn send_message(
-    ctx: &ContextSession,
-    service_map: &Value,
+    client: &ApiClient,
     message: &str,
     thread_id: &str,
     thread_type: u8,
@@ -31,9 +28,8 @@ pub async fn send_message(
         ("chat", "/api/message/sms")
     };
 
-    let base_url = service_url(service_map, service, path)?;
-    let utils = FactoryUtils::new(ctx);
-    let url = utils.make_url(&base_url, &[], true)?;
+    let url = client.service_url(service, path)?;
+    let url = client.make_url(&url, &[], true)?;
 
     // Minimal payload for text message; Zalo's full payload includes client ids,
     // mention info, etc. This covers the core protocol.
@@ -48,22 +44,17 @@ pub async fn send_message(
             "message": message,
             "clientId": client_id,
             "visibility": 0,
-            "imei": ctx.imei,
+            "imei": client.ctx().imei,
         })
     } else {
         serde_json::json!({
             "toId": thread_id,
             "message": message,
             "clientId": client_id,
-            "imei": ctx.imei,
+            "imei": client.ctx().imei,
             "mentionInfo": "",
         })
     };
 
-    let encrypted = utils
-        .encode_aes(&params.to_string())
-        .ok_or_else(|| ZaloError::Api(ZaloApiError::new("Failed to encrypt params")))?;
-
-    let res = utils.request_post(&url, &[("params", encrypted)]).await?;
-    utils.resolve(res).await
+    client.post_encrypted(&url, &params).await
 }

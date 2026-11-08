@@ -3,10 +3,8 @@
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
-use crate::api::get_user_info::service_url;
-use crate::context::ContextSession;
+use crate::api::client::ApiClient;
 use crate::errors::{Result, ZaloApiError, ZaloError};
-use crate::factory::FactoryUtils;
 use crate::models::r#enum::ThreadType;
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -36,14 +34,13 @@ pub struct DeleteMessageDestination {
 
 /// Delete a message.
 pub async fn delete_message(
-    ctx: &ContextSession,
-    service_map: &Value,
+    client: &ApiClient,
     dest: DeleteMessageDestination,
     only_me: bool,
 ) -> Result<DeleteMessageResponse> {
     let thread_type = dest.thread_type.unwrap_or(ThreadType::User);
     let is_group = matches!(thread_type, ThreadType::Group);
-    let is_self = ctx.uid == dest.data.uid_from;
+    let is_self = client.ctx().uid == dest.data.uid_from;
 
     if is_self && !only_me {
         return Err(ZaloError::Api(ZaloApiError::new(
@@ -57,9 +54,8 @@ pub async fn delete_message(
     }
 
     let path = if is_group { "/api/group/deletemsg" } else { "/api/message/delete" };
-    let base_url = service_url(service_map, if is_group { "group" } else { "chat" }, path)?;
-    let utils = FactoryUtils::new(ctx);
-    let url = utils.make_url(&base_url, &[], true)?;
+    let url = client.service_url(if is_group { "group" } else { "chat" }, path)?;
+    let url = client.make_url(&url, &[], true)?;
 
     let client_id = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
@@ -81,12 +77,12 @@ pub async fn delete_message(
         params["grid"] = Value::String(dest.thread_id);
     } else {
         params["toid"] = Value::String(dest.thread_id);
-        params["imei"] = Value::String(ctx.imei.clone());
+        params["imei"] = Value::String(client.ctx().imei.clone());
     }
 
-    let encrypted = utils
+    let encrypted = client
         .encode_aes(&params.to_string())
         .ok_or_else(|| ZaloError::Api(ZaloApiError::new("Failed to encrypt message")))?;
-    let res = utils.request_post(&url, &[("params", encrypted)]).await?;
-    utils.resolve(res).await
+    let res = client.request_post(&url, &[("params", encrypted)]).await?;
+    client.resolve(res).await
 }

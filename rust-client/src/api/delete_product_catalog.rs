@@ -2,10 +2,8 @@
 
 use serde::{Deserialize, Serialize};
 
-use crate::api::get_user_info::service_url;
-use crate::context::ContextSession;
+use crate::api::client::ApiClient;
 use crate::errors::{Result, ZaloApiError, ZaloError};
-use crate::factory::FactoryUtils;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DeleteProductCatalogPayload {
@@ -27,23 +25,16 @@ pub struct DeleteProductCatalogResponse {
 
 /// Delete product catalog items.
 pub async fn delete_product_catalog(
-    ctx: &ContextSession,
-    service_map: &serde_json::Value,
+    client: &ApiClient,
     payload: DeleteProductCatalogPayload,
 ) -> Result<DeleteProductCatalogResponse> {
-    let base_url = service_url(service_map, "catalog", "/api/prodcatalog/product/mdelete")?;
-    let utils = FactoryUtils::new(ctx);
-    let url = utils.make_url(&base_url, &[], true)?;
+    let url = client.service_url("catalog", "/api/prodcatalog/product/mdelete")?;
+    let url = client.make_url(&url, &[], true)?;
 
     let params = serde_json::json!({
         "product_ids": payload.product_ids,
         "catalog_id": payload.catalog_id,
     });
 
-    let encrypted = utils
-        .encode_aes(&params.to_string())
-        .ok_or_else(|| ZaloError::Api(ZaloApiError::new("Failed to encrypt params")))?;
-
-    let res = utils.request_post(&url, &[("params", encrypted)]).await?;
-    utils.resolve(res).await
+    client.post_encrypted(&url, &params).await
 }

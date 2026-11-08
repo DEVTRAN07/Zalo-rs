@@ -2,10 +2,8 @@
 
 use serde::{Deserialize, Serialize};
 
-use crate::api::get_user_info::service_url;
-use crate::context::ContextSession;
+use crate::api::client::ApiClient;
 use crate::errors::{Result, ZaloApiError, ZaloError};
-use crate::factory::FactoryUtils;
 use crate::models::product_catalog::ProductCatalogItem;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -32,8 +30,7 @@ pub struct CreateProductCatalogResponse {
 
 /// Create a product catalog item.
 pub async fn create_product_catalog(
-    ctx: &ContextSession,
-    service_map: &serde_json::Value,
+    client: &ApiClient,
     payload: CreateProductCatalogPayload,
 ) -> Result<CreateProductCatalogResponse> {
     if payload.product_photos.len() > 5 {
@@ -42,9 +39,8 @@ pub async fn create_product_catalog(
         )));
     }
 
-    let base_url = service_url(service_map, "catalog", "/api/prodcatalog/product/create")?;
-    let utils = FactoryUtils::new(ctx);
-    let url = utils.make_url(&base_url, &[], true)?;
+    let url = client.service_url("catalog", "/api/prodcatalog/product/create")?;
+    let url = client.make_url(&url, &[], true)?;
 
     let create_time = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
@@ -61,10 +57,5 @@ pub async fn create_product_catalog(
         "create_time": create_time,
     });
 
-    let encrypted = utils
-        .encode_aes(&params.to_string())
-        .ok_or_else(|| ZaloError::Api(ZaloApiError::new("Failed to encrypt params")))?;
-
-    let res = utils.request_post(&url, &[("params", encrypted)]).await?;
-    utils.resolve(res).await
+    client.post_encrypted(&url, &params).await
 }

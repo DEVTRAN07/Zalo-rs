@@ -3,10 +3,8 @@
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
-use crate::api::get_user_info::service_url;
-use crate::context::ContextSession;
+use crate::api::client::ApiClient;
 use crate::errors::{Result, ZaloApiError, ZaloError};
-use crate::factory::FactoryUtils;
 use crate::models::auto_reply::AutoReplyItem;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -33,13 +31,11 @@ pub struct CreateAutoReplyResponse {
 
 /// Create an auto-reply rule.
 pub async fn create_auto_reply(
-    ctx: &ContextSession,
-    service_map: &Value,
+    client: &ApiClient,
     payload: CreateAutoReplyPayload,
 ) -> Result<CreateAutoReplyResponse> {
-    let base_url = service_url(service_map, "auto_reply", "/api/autoreply/create")?;
-    let utils = FactoryUtils::new(ctx);
-    let url = utils.make_url(&base_url, &[], true)?;
+    let url = client.service_url("auto_reply", "/api/autoreply/create")?;
+    let url = client.make_url(&url, &[], true)?;
 
     let uids = payload.uids.unwrap_or_default();
     let result_uids = if payload.scope == 2 || payload.scope == 3 {
@@ -49,7 +45,7 @@ pub async fn create_auto_reply(
     };
 
     let params = serde_json::json!({
-        "cliLang": ctx.language,
+        "cliLang": client.ctx().language,
         "enable": payload.is_enable,
         "content": payload.content,
         "startTime": payload.start_time,
@@ -59,10 +55,5 @@ pub async fn create_auto_reply(
         "uids": result_uids,
     });
 
-    let encrypted = utils
-        .encode_aes(&params.to_string())
-        .ok_or_else(|| ZaloError::Api(ZaloApiError::new("Failed to encrypt params")))?;
-
-    let res = utils.request_post(&url, &[("params", encrypted)]).await?;
-    utils.resolve(res).await
+    client.post_encrypted(&url, &params).await
 }

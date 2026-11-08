@@ -8,7 +8,7 @@
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
-use crate::context::ContextSession;
+use crate::api::client::ApiClient;
 use crate::errors::{Result, ZaloApiError, ZaloError};
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -21,8 +21,7 @@ pub struct ChangeAccountAvatarResponse {
 ///
 /// Not yet implemented in rust-client (requires multipart upload).
 pub async fn change_account_avatar(
-    _ctx: &ContextSession,
-    _service_map: &Value,
+    _client: &ApiClient,
     _avatar_path: &str,
 ) -> Result<ChangeAccountAvatarResponse> {
     Err(ZaloError::Api(ZaloApiError::new(

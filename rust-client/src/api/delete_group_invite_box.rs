@@ -3,10 +3,8 @@
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
-use crate::api::get_user_info::service_url;
-use crate::context::ContextSession;
+use crate::api::client::ApiClient;
 use crate::errors::{Result, ZaloApiError, ZaloError};
-use crate::factory::FactoryUtils;
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct InviteBoxError {
@@ -24,13 +22,11 @@ pub struct DeleteGroupInviteBoxResponse {
 
 /// Delete group invite box entries.
 pub async fn delete_group_invite_box(
-    ctx: &ContextSession,
-    service_map: &serde_json::Value,
+    client: &ApiClient,
     group_ids: Vec<String>,
     block_future_invite: bool,
 ) -> Result<DeleteGroupInviteBoxResponse> {
-    let base_url = service_url(service_map, "group", "/api/group/inv-box/mdel-inv")?;
-    let utils = FactoryUtils::new(ctx);
+    let url = client.service_url("group", "/api/group/inv-box/mdel-inv")?;
 
     let invitations: Vec<serde_json::Value> = group_ids
         .into_iter()
@@ -42,11 +38,11 @@ pub async fn delete_group_invite_box(
         "block": if block_future_invite { 1 } else { 0 },
     });
 
-    let encrypted = utils
+    let encrypted = client
         .encode_aes(&params.to_string())
         .ok_or_else(|| ZaloError::Api(ZaloApiError::new("Failed to encrypt params")))?;
 
-    let url = utils.make_url(&base_url, &[("params", encrypted)], true)?;
-    let res = utils.request_get(&url).await?;
-    utils.resolve(res).await
+    let url = client.make_url(&url, &[("params", encrypted)], true)?;
+    let res = client.request_get(&url).await?;
+    client.resolve(res).await
 }

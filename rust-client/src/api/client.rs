@@ -35,6 +35,17 @@ impl ApiClient {
         url::service_url(&self.service_map, service, path)
     }
 
+    /// Build a URL with query params and API version/type markers.
+    pub fn make_url(
+        &self,
+        base_url: &str,
+        params: &[(&str, String)],
+        api_version: bool,
+    ) -> Result<String> {
+        let base = self.ctx_to_base();
+        http::make_url(&base, base_url, params, api_version)
+    }
+
     /// Encrypt data with session secret key (base64).
     pub fn encode_aes(&self, data: &str) -> Option<String> {
         crate::crypto::encode_aes(&self.ctx.secret_key, data)
