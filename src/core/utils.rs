@@ -4,14 +4,14 @@ use std::fs;
 use std::io::Read;
 use std::path::Path;
 
-use aes_gcm::{AesGcm, KeyInit};
-use aes_gcm::aead::Aead;
+use aes_gcm::aead::AeadInPlace;
 use aes_gcm::aes::Aes128;
+use aes_gcm::{AesGcm, KeyInit};
 use base64::{engine::general_purpose::STANDARD as BASE64, Engine as _};
 use chrono::{Datelike, Timelike};
 use flate2::read::ZlibDecoder;
+use generic_array::typenum::U16;
 use generic_array::GenericArray;
-use generic_array::typenum::U12;
 use md5::{Digest, Md5};
 use serde_json::Map;
 use unicode_normalization::UnicodeNormalization;
@@ -96,8 +96,7 @@ pub async fn decode_event_data(
         ZaloApiError::new(format!("Failed to base64-decode data: {}", e))
     })?;
 
-    let mut decrypted_buffer = decoded_buffer.clone();
-    if encrypt != 1 {
+    let decrypted_buffer = if encrypt != 1 {
         let key_b64 = cipher_key.ok_or_else(|| {
             ZaloApiError::new("Invalid data length or missing cipher key")
         })?;
@@ -112,19 +111,24 @@ pub async fn decode_event_data(
             return Err(ZaloApiError::new("Cipher key must be 16 bytes"));
         }
 
-        let cipher = AesGcm::<Aes128, U12>::new_from_slice(&key_bytes).map_err(|e| ZaloApiError::new(format!("Failed to create cipher: {}", e)))?;
-        let nonce = GenericArray::<u8, U12>::from_slice(&decoded_buffer[0..12]);
-        let tag = &decoded_buffer[12..28];
-        let ciphertext = &decoded_buffer[28..];
+        // Layout matches TypeScript (src/core/utils.ts):
+        // iv (nonce): [0..16], additionalData (AAD): [16..32],
+        // ciphertext: [32..len-16], tag: [len-16..len]
+        let nonce = GenericArray::<u8, U16>::from_slice(&decoded_buffer[0..16]);
+        let aad = &decoded_buffer[16..32];
+        let tag = GenericArray::<u8, U16>::from_slice(&decoded_buffer[decoded_buffer.len() - 16..]);
+        let mut ciphertext = decoded_buffer[32..decoded_buffer.len() - 16].to_vec();
 
-        let mut buf_with_tag = Vec::with_capacity(ciphertext.len() + 16);
-        buf_with_tag.extend_from_slice(ciphertext);
-        buf_with_tag.extend_from_slice(tag);
-
-        decrypted_buffer = cipher
-            .decrypt(nonce, buf_with_tag.as_slice())
+        let cipher = AesGcm::<Aes128, U16>::new_from_slice(&key_bytes)
+            .map_err(|e| ZaloApiError::new(format!("Failed to create cipher: {}", e)))?;
+        cipher
+            .decrypt_in_place_detached(nonce, aad, &mut ciphertext, tag)
             .map_err(|e| ZaloApiError::new(format!("AES-GCM decryption failed: {}", e)))?;
-    }
+
+        ciphertext
+    } else {
+        decoded_buffer
+    };
 
     let decompressed_buffer = if encrypt == 3 {
         decrypted_buffer
