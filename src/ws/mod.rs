@@ -12,6 +12,7 @@ use tokio_tungstenite::tungstenite::http::HeaderValue;
 use tokio_tungstenite::tungstenite::Message as WsMessage;
 
 use crate::context::ContextSession;
+use crate::core::utils::{decode_event_data, DecodedEventData};
 use crate::errors::{Result, ZaloApiError, ZaloError};
 use crate::{zlog_error, zlog_info, zlog_verbose, zlog_warn};
 
@@ -296,40 +297,50 @@ async fn handle_binary_message(
         return;
     }
 
-    // For encrypted event payloads, attempt to decode using cipher key.
-    // The TS implementation decrypts specific cmd/subCmd combos; here we pass
-    // through the parsed data and also emit raw. Full AES-GCM event decryption
-    // (as in TS decodeEventData) requires the same cipher key flow — we store
-    // the key and leave deep decryption hooks for callers who need it.
+    // Decode encrypted event payloads. Mirrors the TypeScript client, which
+    // calls decodeEventData on every event cmd before processing.
+    let key_guard = cipher_key.lock().await;
+    let event_data = if let Value::Object(map) = &parsed_data {
+        let encrypt = map.get("encrypt").and_then(|v| v.as_i64()).unwrap_or(0);
+        if encrypt > 0 {
+            match decode_event_data(map, key_guard.as_deref()).await {
+                Ok(Some(DecodedEventData::Object(m))) => Value::Object(m),
+                Ok(Some(DecodedEventData::Value(v))) => v,
+                Ok(None) | Err(_) => parsed_data.clone(),
+            }
+        } else {
+            parsed_data.clone()
+        }
+    } else {
+        parsed_data.clone()
+    };
+    drop(key_guard);
+
     let payload = WsPayload {
         version,
         cmd,
         sub_cmd,
-        data: parsed_data.clone(),
+        data: event_data.clone(),
     };
-
-    let key_guard = cipher_key.lock().await;
-    let _has_key = key_guard.is_some();
-    drop(key_guard);
 
     match (cmd, sub_cmd) {
         (501, 0) | (551, 0) => {
-            let _ = event_tx.send(ListenerEvent::Message(parsed_data));
+            let _ = event_tx.send(ListenerEvent::Message(event_data));
         }
         (521, 0) => {
-            let _ = event_tx.send(ListenerEvent::GroupMessage(parsed_data));
+            let _ = event_tx.send(ListenerEvent::GroupMessage(event_data));
         }
         (612, _) | (610, _) | (611, _) => {
-            let _ = event_tx.send(ListenerEvent::Reaction(parsed_data));
+            let _ = event_tx.send(ListenerEvent::Reaction(event_data));
         }
         (601, 0) => {
-            let _ = event_tx.send(ListenerEvent::Control(parsed_data));
+            let _ = event_tx.send(ListenerEvent::Control(event_data));
         }
         (510, 1) | (511, 1) => {
-            let _ = event_tx.send(ListenerEvent::OldMessages(parsed_data));
+            let _ = event_tx.send(ListenerEvent::OldMessages(event_data));
         }
         (502, 0) | (522, 0) | (602, 0) => {
-            let _ = event_tx.send(ListenerEvent::SeenDelivered(parsed_data));
+            let _ = event_tx.send(ListenerEvent::SeenDelivered(event_data));
         }
         _ => {
             let _ = event_tx.send(ListenerEvent::Raw(payload));
