@@ -109,21 +109,30 @@ impl Listener {
                     settings: ctx.settings.clone(),
                     extra_ver: ctx.extra_ver.clone(),
                 };
+                let ws_query = vec![
+                    ("t", now_ms().to_string()),
+                    ("imei", base_ctx.imei.clone().unwrap_or_default()),
+                    ("uid", base_ctx.uid.clone().unwrap_or_default()),
+                    ("zpw_enk", base_ctx.secret_key.clone().unwrap_or_default()),
+                ];
                 let ws_url = crate::http::make_url(
                     &base_ctx,
                     base,
-                    &[("t", now_ms().to_string())],
+                    &ws_query,
                     true,
                 )
                 .unwrap_or_else(|_| {
-                    if base.contains('?') {
-                        format!("{}&t={}", base, now_ms())
-                    } else {
-                        format!("{}?t={}", base, now_ms())
-                    }
+                    let mut sep = if base.contains('?') { '&' } else { '?' };
+                    format!("{}{}t={}&imei={}&uid={}&zpw_enk={}",
+                        base, sep, now_ms(),
+                        base_ctx.imei.clone().unwrap_or_default(),
+                        base_ctx.uid.clone().unwrap_or_default(),
+                        base_ctx.secret_key.clone().unwrap_or_default(),
+                    )
                 });
 
                 zlog_info!("Connecting to WebSocket: {}", ws_url);
+                zlog_verbose!("WS URL query params: t, imei, uid, zpw_enk | base={}", base);
                 let cipher_key: Arc<Mutex<Option<String>>> = Arc::new(Mutex::new(None));
 
                 let connect_result = connect_and_run(&ctx, &ws_url, event_tx.clone(), &mut stop_rx, cipher_key, ctx.options.self_listen).await;
@@ -195,7 +204,10 @@ async fn connect_and_run(
 
     let (ws_stream, _) = tokio_tungstenite::connect_async(request)
         .await
-        .map_err(|e| ZaloError::WebSocket(e.to_string()))?;
+        .map_err(|e| {
+            zlog_error!("WebSocket connect_async failed: {}", e);
+            ZaloError::WebSocket(e.to_string())
+        })?;
 
     let _ = event_tx.send(ListenerEvent::Connected);
     zlog_info!("WebSocket connected");
