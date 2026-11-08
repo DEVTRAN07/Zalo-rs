@@ -16,7 +16,7 @@ pub mod ws;
 pub mod models;
 pub mod core;
 
-pub use api::ZaloApi;
+pub use api::{ApiClient, ZaloApi};
 pub use client::ZaloClient;
 pub use context::{Credentials, Options, RetryOptions, ZaloCookie, ZaloCredentials};
 pub use errors::{Result, ZaloApiError, ZaloError};

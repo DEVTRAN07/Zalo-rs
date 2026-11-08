@@ -1,5 +1,11 @@
 //! Zalo API surface: holds session context and exposes endpoint methods.
 
+pub mod client;
+pub mod url;
+
+pub use client::{ApiClient, ZpwServiceMap};
+pub use url::service_url;
+
 pub mod accept_friend_request;
 pub mod add_group_blocked_member;
 pub mod add_group_deputy;

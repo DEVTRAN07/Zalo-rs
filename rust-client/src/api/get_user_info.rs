@@ -7,6 +7,8 @@ use crate::context::ContextSession;
 use crate::errors::{Result, ZaloApiError, ZaloError};
 use crate::factory::FactoryUtils;
 
+pub use super::url::service_url;
+
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct UserInfoResponse {
     #[serde(default)]
@@ -64,24 +66,8 @@ pub async fn get_user_info(
         .encode_aes(&params.to_string())
         .ok_or_else(|| ZaloError::Api(ZaloApiError::new("Failed to encrypt params")))?;
 
-    let res = utils.request_post(&service_url, &[("params", encrypted)]).await?;
+    let res = utils
+        .request_post(&service_url, &[("params", encrypted)])
+        .await?;
     utils.resolve(res).await
-}
-
-/// Resolve a service URL from the zpw_service_map.
-pub(crate) fn service_url(service_map: &Value, service: &str, path: &str) -> Result<String> {
-    let base = service_map
-        .get(service)
-        .and_then(|v| v.as_array())
-        .and_then(|a| a.first())
-        .and_then(|v| v.as_str())
-        .ok_or_else(|| {
-            ZaloError::Api(ZaloApiError::new(format!(
-                "Missing service URL for '{}' in zpw_service_map",
-                service
-            )))
-        })?;
-    let base = base.trim_end_matches('/');
-    let path = if path.starts_with('/') { path.to_string() } else { format!("/{}", path) };
-    Ok(format!("{}{}", base, path))
 }

@@ -118,7 +118,10 @@ pub async fn handle_zalo_response<T: DeserializeOwned>(
     };
 
     // The decrypted payload may itself have error_code/data
-    let inner_code = payload.get("error_code").and_then(|v| v.as_i64()).unwrap_or(0);
+    let inner_code = payload
+        .get("error_code")
+        .and_then(|v| v.as_i64())
+        .unwrap_or(0);
     if inner_code != 0 {
         let msg = payload
             .get("error_message")
@@ -169,6 +172,7 @@ pub async fn resolve_response<T: DeserializeOwned>(
 }
 
 /// Helpers passed to endpoint implementations.
+#[deprecated(note = "Use `api::ApiClient` for idiomatic request handling.")]
 pub struct FactoryUtils<'a> {
     pub ctx: &'a ContextSession,
 }
@@ -179,7 +183,12 @@ impl<'a> FactoryUtils<'a> {
     }
 
     /// Build a Zalo API URL with version/type params.
-    pub fn make_url(&self, base_url: &str, params: &[(&str, String)], api_version: bool) -> Result<String> {
+    pub fn make_url(
+        &self,
+        base_url: &str,
+        params: &[(&str, String)],
+        api_version: bool,
+    ) -> Result<String> {
         // Convert session ctx to base-compatible view for make_url
         let base = ContextBase {
             api_type: self.ctx.api_type,
@@ -204,7 +213,11 @@ impl<'a> FactoryUtils<'a> {
     }
 
     /// POST form data to a URL.
-    pub async fn request_post(&self, url: &str, form: &[(&str, String)]) -> Result<reqwest::Response> {
+    pub async fn request_post(
+        &self,
+        url: &str,
+        form: &[(&str, String)],
+    ) -> Result<reqwest::Response> {
         let base = self.ctx_to_base();
         http::post_form(&base, url, form).await
     }
