@@ -2,87 +2,64 @@
 
 ## Supported Versions
 
-We actively maintain and provide security updates for the following versions:
+`zalo-client` is currently an early Rust crate (`0.1.x`) under active development in this repository.
 
-| Version | Supported          |
-| ------- | ------------------ |
-| 2.0.x   | :white_check_mark: |
-| 1.x.x   | :x:                |
-| < 1.0   | :x:                |
+| Version | Supported |
+| --- | --- |
+| 0.1.x (current development line) | Best effort |
+| < 0.1.0 | No |
+
+Only the latest code on the default branch should be considered for security fixes unless maintainers state otherwise.
 
 ## Reporting a Vulnerability
 
-We take security vulnerabilities seriously. If you discover a security vulnerability in zalo-client, please follow these steps:
+Do **not** open a public GitHub issue for security vulnerabilities, credential leaks, or exploit details.
 
-### 1. **DO NOT** create a public GitHub issue
+Please report privately with:
 
-Security vulnerabilities should be reported privately to prevent potential exploitation.
+- a clear description of the issue
+- affected files, versions, or commits
+- reproduction steps or proof of concept (if available)
+- impact assessment
+- any suggested mitigation
 
-### 2. Report the vulnerability
+If the repository has GitHub private vulnerability reporting enabled, use that channel first. Otherwise, contact the maintainers through GitHub privately and include `[SECURITY] zalo-client` in the subject or message.
 
-Send an email to the maintainers with the following information:
+### Response expectations
 
--   **Subject**: `[SECURITY] zalo-client vulnerability report`
--   **Description**: Detailed description of the vulnerability
--   **Steps to reproduce**: Clear steps to reproduce the issue
--   **Impact assessment**: Potential impact of the vulnerability
--   **Suggested fix** (if available): Any suggestions for fixing the issue
-
-### 3. Response timeline
-
--   **Initial response**: Within 48 hours
--   **Status update**: Within 1 week
--   **Resolution**: As soon as possible, typically within 30 days
+- Initial response: best effort within 48 hours
+- Triage/update: best effort within 7 days
+- Fix timeline: depends on severity, reproducibility, and maintainer availability
 
 ## Security Considerations
 
-### Important Warnings
+This is an unofficial, reverse-engineered client for Zalo's web protocol.
 
-⚠️ **This is an unofficial API library** that simulates browser interactions with Zalo Web. Please be aware of the following security considerations:
+- **Account risk:** Using this library may violate Zalo terms and can result in rate limiting, session invalidation, suspension, or account bans.
+- **Credential sensitivity:** Cookies, IMEI values, user-agent strings, tokens, and session keys are sensitive. Treat them as secrets.
+- **Protocol volatility:** Zalo endpoints, encryption details, and behavior may change without notice, which can create correctness or security issues.
+- **No official support:** There is no guarantee of safety, availability, or compatibility.
 
-1. **Account Risk**: Using this API may result in your Zalo account being locked or banned. Use at your own risk.
+## Best Practices for Users
 
-2. **Authentication**: The library handles sensitive authentication data. Ensure proper security measures when storing or transmitting this information.
+- Store credentials in environment variables or a secret manager, never in source control.
+- Use dedicated test accounts when experimenting.
+- Keep dependencies updated (`cargo update` / review `Cargo.lock` changes).
+- Validate and log carefully; avoid logging raw cookies, tokens, or encrypted payload keys.
+- Review protocol-facing changes before deploying automation.
 
-3. **Rate Limiting**: Respect Zalo's rate limits to avoid triggering security measures.
+## Best Practices for Contributors
 
-4. **Data Privacy**: Be mindful of user privacy and comply with relevant data protection regulations.
-
-### Best Practices
-
-1. **Environment Variables**: Store sensitive configuration in environment variables, not in code
-2. **HTTPS Only**: Always use HTTPS when transmitting data
-3. **Input Validation**: Validate all inputs before processing
-4. **Error Handling**: Implement proper error handling to avoid information disclosure
-5. **Regular Updates**: Keep the library updated to the latest version
-
-### Known Limitations
-
--   This library is not officially supported by Zalo
--   API endpoints and behavior may change without notice
--   No guarantee of service availability or stability
--   May break with Zalo Web updates
+- Never commit real credentials, cookies, QR/session artifacts, or personal data.
+- Add regression tests for crypto, framing, signing, and parsing changes when feasible.
+- Avoid widening request/response types with guessed fields.
+- Call out account risk and behavior changes in pull requests.
+- Do not add telemetry or hidden network behavior.
 
 ## Security Updates
 
-Security updates will be released as patch versions (e.g., 2.0.1, 2.0.2) and will be clearly marked in the changelog.
-
-## Contact Information
-
-For security-related issues, please contact:
-
--   **GitHub Issues**: Create a private issue with the `[SECURITY]` label
--   **GitHub Discussions**: Use the "Security" category for general security questions
--   **Team Members**:
-    -   [@RFS-ADRENO](https://github.com/RFS-ADRENO)
-    -   [@truong9c2208](https://github.com/truong9c2208)
-    -   [@JustKemForFun](https://github.com/JustKemForFun)
--   **Alternative**: Contact any team member through GitHub for urgent security matters
+Security fixes, when available, will be documented in [CHANGELOG.md](./CHANGELOG.md) and released through the repository's normal Git/Cargo workflow.
 
 ## Acknowledgments
 
-We appreciate security researchers and community members who responsibly disclose vulnerabilities. Contributors will be acknowledged in our security advisories unless they prefer to remain anonymous.
-
----
-
-**Note**: This security policy is subject to change. Please check back regularly for updates.
+We appreciate responsible disclosure. Reporters may be credited in advisories or release notes unless they request anonymity.

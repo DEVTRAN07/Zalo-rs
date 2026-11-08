@@ -63,13 +63,13 @@ reported to the community leaders responsible for enforcement through:
 
 -   **GitHub Issues**: Create a private issue with the `[CONDUCT]` label
 -   **GitHub Discussions**: Use the "Community" category for general concerns
--   **Direct Contact**: Reach out to any team member through GitHub
--   **Team Members**:
+-   **Direct Contact**: Reach out to any maintainer through GitHub
+-   **Maintainers**:
     -   [@RFS-ADRENO](https://github.com/RFS-ADRENO)
     -   [@truong9c2208](https://github.com/truong9c2208)
     -   [@JustKemForFun](https://github.com/JustKemForFun)
 
-All complaints will be reviewed and investigated promptly and fairly by the team.
+All complaints will be reviewed and investigated promptly and fairly.
 
 All community leaders are obligated to respect the privacy and security of the
 reporter of any incident.
@@ -137,28 +137,15 @@ https://www.contributor-covenant.org/translations.
 
 ## Special Considerations for zalo-client
 
-Given that zalo-client is an unofficial API library for Zalo, we have additional
-guidelines specific to our project:
+`zalo-client` is an unofficial Rust crate that interacts with the reverse-engineered Zalo web protocol. Project-specific expectations:
 
-### Responsible Usage
-
--   **Respect Zalo's Terms of Service**: While this is an unofficial library,
-    users should be aware of and respect Zalo's terms of service
--   **Account Safety**: Do not encourage or provide guidance on circumventing
-    Zalo's security measures
--   **Privacy**: Respect user privacy and do not share personal information
-    obtained through the API
--   **Rate Limiting**: Encourage responsible usage that doesn't overload Zalo's
-    servers
-
-### Technical Discussions
-
--   **Security**: When discussing security-related topics, use appropriate
-    channels and follow responsible disclosure practices
--   **Bugs and Issues**: Report bugs and issues through proper channels
--   **Documentation**: Help improve documentation and examples for the community
+-   **Respect Zalo's terms and policies:** Be aware that unofficial clients may violate platform rules.
+-   **Do not promote account abuse:** Do not share instructions intended to evade bans, spam users, harvest data, or bypass security controls.
+-   **Protect privacy:** Never post cookies, IMEI values, tokens, session data, or personal information obtained through the API.
+-   **Report security issues responsibly:** Follow [SECURITY.md](./SECURITY.md) for vulnerabilities or credential exposure.
+-   **Be precise:** When discussing protocol behavior, distinguish verified observations from assumptions.
 
 ---
 
-**Note**: This Code of Conduct is a living document and may be updated as our
-community grows and evolves.
+**Note**: This Code of Conduct is a living document and may be updated as the
+community evolves.

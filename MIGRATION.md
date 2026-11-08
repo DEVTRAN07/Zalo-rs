@@ -1,89 +1,80 @@
-# Migration guide: `zca-js` (v2) → `zalo-client` (v3)
+# Migration Guide
 
-Version 3 rewrites the internals but keeps the wire protocol identical. Most v2 code keeps working after changing the import; this guide lists everything that actually changed.
+This repository is now a pure Rust crate (`zalo-client`, v0.1.0) at the repository root. The previous TypeScript/Node.js implementation and npm packaging are no longer part of this tree.
 
-## 1. Install the new package
+## Who this guide is for
 
-```bash
-npm uninstall zca-js
-npm install zalo-client
+- Users of the old TypeScript/Node `zalo-client` / `zca-js` codebase who want to move to the Rust crate.
+- Contributors updating old docs, scripts, or examples that still assume `npm`, `bun`, `tsc`, `src/*.ts`, or a `rust-client/` subdirectory.
+
+## Key changes
+
+| Area | Previous state | Current state |
+| --- | --- | --- |
+| Language/runtime | TypeScript / Node.js | Rust / Tokio |
+| Package manager | npm / bun | Cargo |
+| Crate/package location | TS project; earlier experiments used `rust-client/` | `Cargo.toml` at repository root |
+| Distribution | npm-oriented workflow in legacy project | Git/path dependency from this repository; no crates.io publication claimed here |
+| API style | JS/TS objects and promises | Rust structs, enums, `async` methods, `Result<T, _>` |
+
+## Porting notes
+
+The Rust API is not a drop-in replacement. Method names, payload types, and signatures differ. Use the Rust source and examples as the source of truth.
+
+### Login
+
+```rust
+use zalo_client::{Credentials, ZaloClient, ZaloCookie};
+
+let client = ZaloClient::new(Default::default());
+let api = client.login(Credentials {
+    imei,
+    cookie,      // Vec<ZaloCookie>
+    user_agent,
+    language: Some("vi".into()),
+}).await?;
 ```
 
-```bash
-# v2
-bun add zca-js
-# v3
-bun add zalo-client
+### Sending a message
+
+`ZaloApi::send_message` currently accepts `(message, thread_id, thread_type: u8)`. A `ThreadType` enum exists under `zalo_client::models::r#enum::ThreadType` if you want typed conversions.
+
+```rust
+let result = api.send_message("hello", thread_id, 0).await?;
 ```
 
-## 2. Update imports and class names
+Check the current signature in `src/api/mod.rs` and `src/api/send_message.rs` before porting production code.
 
-| v2 (`zca-js`)                   | v3 (`zalo-client`)                         | Notes                                           |
-| ------------------------------- | ------------------------------------------ | ----------------------------------------------- |
-| `import { Zalo } from "zca-js"` | `import { ZaloClient } from "zalo-client"` | `Zalo` still works (deprecated alias)           |
-| `new Zalo()`                    | `new ZaloClient()`                         | same constructor options                        |
-| `import { API } from "zca-js"`  | `import { ZaloApi } from "zalo-client"`    | `API` still works (deprecated alias)            |
-| `ZaloApiError`                  | `ZaloApiError`                             | unchanged name; `.name` fixed to `ZaloApiError` |
-| —                               | `ZaloError`                                | new base class for all library errors           |
+### Real-time events
 
-Types (`Credentials`, `Cookie`, `Options`, `ContextSession`, all models and endpoint types) keep their names.
+The Rust crate exposes a WebSocket listener:
 
-## 3. Option changes
-
-```typescript
-// v2
-new Zalo({ selfListen: true, checkUpdate: true, logging: true });
-
-// v3
-new ZaloClient({ selfListen: true, logging: "info" });
+```rust
+let mut listener = api.listener();
+let mut rx = listener.start()?;
+while let Some(event) = rx.recv().await {
+    // handle event
+}
 ```
 
--   **`checkUpdate` was removed** — the library no longer queries npm on login. Remove it from your options (passing it is a type error now, harmless at runtime).
--   **`logging` accepts levels**: `"silent" | "error" | "warn" | "info" | "verbose"` (booleans still work).
--   **New: `retry`** — `{ limit, delayMs, maxDelayMs, methods, timeoutMs }`. Defaults only retry `GET`/`HEAD`, so message sending behavior is unchanged unless you opt in:
+Event payloads follow the reverse-engineered Zalo web protocol and may not match legacy TypeScript event shapes exactly.
 
-```typescript
-new ZaloClient({ retry: { limit: 5, timeoutMs: 30000, methods: ["GET", "HEAD", "POST"] } });
-```
+### QR login
 
-## 4. Removed dependencies
+QR login is exposed as low-level, caller-driven helpers in `src/api/login_qr.rs`. It should not be treated as a complete interactive login replacement.
 
-`crypto-js`, `spark-md5` and `semver` are no longer dependencies — everything runs on built-in `node:crypto`. If your code imported them only because of this library, you can drop them. Lockfiles regenerate automatically on install.
+## Migration checklist
 
-## 5. Deep imports
+1. Replace Node.js dependencies/scripts with a Cargo-based Rust project.
+2. Add `tokio` and `serde_json` (or equivalent) to your Rust application.
+3. Recreate credential loading. Do not hardcode cookies, IMEI values, or tokens.
+4. Port each endpoint call by checking its Rust method signature and response type.
+5. Move event handling to the async listener/channel model.
+6. Run `cargo test` and `cargo build` in this repository when developing changes.
 
-If you imported internals directly (this was never part of the public API, but it happened):
+## Limitations
 
-| v2 path                       | v3 path                            |
-| ----------------------------- | ---------------------------------- |
-| `zca-js/dist/utils.js`        | `zalo-client/dist/core/utils.js`   |
-| `zca-js/dist/context.js`      | `zalo-client/dist/core/context.js` |
-| `zca-js/dist/Errors/index.js` | `zalo-client/dist/core/errors.js`  |
-
-Split of the old `utils.js`:
-
-| Export                                                                                                                    | New module        |
-| ------------------------------------------------------------------------------------------------------------------------- | ----------------- |
-| `apiFactory`, `FactoryUtils`, `resolveResponse`                                                                           | `core/factory.js` |
-| `logger`                                                                                                                  | `core/logger.js`  |
-| `request`, `makeURL`, `getDefaultHeaders`                                                                                 | `core/http.js`    |
-| `getSignKey`, `encodeAES`, `decodeAES`, `decryptResp`, `ParamsEncryptor`, `encryptPin`, `validatePin`, `generateZaloUUID` | `core/crypto.js`  |
-| everything else (`hasOwn`, `getMd5LargeFileObject`, `formatTime`, `decodeEventData`, …)                                   | `core/utils.js`   |
-
-## 6. Behavior notes
-
--   **`api.<endpoint>` is now created lazily** on first access. Reading a property before login-as-session works, using it requires a logged-in `ZaloApi` (same as before).
--   **Requests time out after 60s by default** instead of hanging forever. Configure with `retry.timeoutMs` (`0` disables).
--   **Failed idempotent requests are retried** (3 attempts, backoff 250ms→5s). Non-idempotent ones are not retried.
--   `getCookie()` still returns the live cookie jar; `cookie` handling in `Credentials` is unchanged.
-
-## 7. Quick sanity check
-
-```typescript
-import { ZaloClient, ZaloApi, ZaloApiError } from "zalo-client";
-
-const client = new ZaloClient({ logging: "info" });
-const api = await client.login(JSON.parse(fs.readFileSync("./credentials.json", "utf-8")));
-if (!(api instanceof ZaloApi)) throw new Error("unexpected api instance");
-console.log("logged in as", api.getOwnId());
-```
+- No npm package is provided by this repository.
+- Protocol behavior is reverse-engineered and can change without notice.
+- The Rust port has broad endpoint coverage, but exact behavioral parity with the legacy TypeScript client is not guaranteed.
+- WebSocket event decoding may be incomplete for some payloads.

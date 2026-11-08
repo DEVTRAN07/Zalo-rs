@@ -1,6 +1,33 @@
 # Changelog
 
-All notable changes to this project are documented here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project adheres to [Semantic Versioning](https://semver.org/).
+All notable changes to this project are documented here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project aims to follow [Semantic Versioning](https://semver.org/) where practical.
+
+## [0.1.0] - 2026-11-08
+
+### Changed
+
+- Converted the repository to a pure Rust crate at the repository root (`Cargo.toml`, `src/`, `tests/`, `examples/`).
+- Removed the legacy TypeScript/Node.js source tree and related packaging/build artifacts from the active project layout.
+- Reworked the public Rust surface around `ZaloClient`, `ZaloApi`, context/credential types, and protocol helpers.
+
+### Added
+
+- Broad Zalo web API coverage with 158 endpoint modules under `src/api/` (excluding `client.rs`, `mod.rs`, and `url.rs`) exposed through `ZaloApi`.
+- Cookie-aware login flow for browser-exported credentials.
+- Low-level QR login helpers in `src/api/login_qr.rs` (caller-driven flow).
+- Multipart upload support for `upload_attachment` and `upload_product_photo`.
+- WebSocket listener implementation with binary frame encoding/decoding, event channel delivery, reconnect behavior, and cipher-key handshake handling.
+- Integration/doctests covering encryption, login flow helpers, URL resolution, and WebSocket framing (`cargo test` passes in the current workspace state).
+
+### Notes
+
+- This is an unofficial reverse-engineered client. Protocol behavior may change without notice.
+- The Rust crate is not claimed to be published on crates.io.
+- Event decoding and protocol parity are incomplete in areas; treat the API as evolving.
+
+## Legacy TypeScript releases
+
+Entries below describe the previous TypeScript/Node.js implementation that existed before the pure Rust rewrite. They are retained for historical context.
 
 ## [3.0.0] — 2026-10-10
 
