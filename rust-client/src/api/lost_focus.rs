@@ -1,30 +1,14 @@
-//! Lost focus.
-
-use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
-use crate::api::get_user_info::service_url;
-use crate::context::ContextSession;
-use crate::errors::{Result, ZaloApiError, ZaloError};
-use crate::factory::FactoryUtils;
+use crate::api::client::ApiClient;
+use crate::errors::Result;
 
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
-pub struct LostFocusResponse {
-    #[serde(default)]
-    pub status: bool,
-}
+pub type LostFocusResponse = Value;
 
 /// Lost focus.
-pub async fn lost_focus(ctx: &ContextSession, service_map: &Value) -> Result<LostFocusResponse> {
-    let base_url = service_url(service_map, "profile", "/api/social/profile/changefgtobg")?;
-    let utils = FactoryUtils::new(ctx);
-    let url = utils.make_url(&base_url, &[], true)?;
-
+pub async fn lost_focus(client: &ApiClient) -> Result<LostFocusResponse> {
+    let base_url = client.service_url("presence", "/api/presence/lost-focus")?;
+    let url = client.make_url(&base_url, &[], true)?;
     let params = serde_json::json!({});
-    let encrypted = utils
-        .encode_aes(&params.to_string())
-        .ok_or_else(|| ZaloError::Api(ZaloApiError::new("Failed to encrypt params")))?;
-
-    let res = utils.request_post(&url, &[("params", encrypted)]).await?;
-    utils.resolve(res).await
+    client.post_encrypted(&url, &params).await
 }

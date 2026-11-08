@@ -1,48 +1,31 @@
-//! Get last online.
-
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
-use crate::api::get_user_info::service_url;
-use crate::context::ContextSession;
-use crate::errors::{Result, ZaloApiError, ZaloError};
-use crate::factory::FactoryUtils;
+use crate::api::client::ApiClient;
+use crate::errors::Result;
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct LastOnlineSettings {
+    #[serde(rename = "show_online_status", default)]
+    pub show_online_status: bool,
+    #[serde(rename = "display_last_seen", default)]
+    pub display_last_seen: bool,
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct LastOnlineResponse {
     #[serde(default)]
-    pub settings: Value,
-    #[serde(rename = "lastOnline", default)]
-    pub last_online: i64,
+    pub last_seen: i64,
+    #[serde(default)]
+    pub settings: Option<LastOnlineSettings>,
+    #[serde(flatten, default)]
+    pub extra: std::collections::HashMap<String, Value>,
 }
 
-/// Get last online.
-pub async fn last_online(
-    ctx: &ContextSession,
-    service_map: &Value,
-    uid: &str,
-) -> Result<LastOnlineResponse> {
-    let base_url = service_url(service_map, "profile", "/api/social/profile/lastOnline")?;
-    let utils = FactoryUtils::new(ctx);
-    let url = utils.make_url(&base_url, &[], true)?;
-
-    let params = serde_json::json!({
-        "uid": uid,
-        "conv_type": 1,
-        "imei": ctx.imei,
-    });
-    let encrypted = utils
-        .encode_aes(&params.to_string())
-        .ok_or_else(|| ZaloError::Api(ZaloApiError::new("Failed to encrypt params")))?;
-
-    let res = utils.request_get(&url_with_params(&url, &encrypted)).await?;
-    utils.resolve(res).await
-}
-
-fn url_with_params(url: &str, params: &str) -> String {
-    if url.contains('?') {
-        format!("{}&params={}", url, urlencoding::encode(params))
-    } else {
-        format!("{}?params={}", url, urlencoding::encode(params))
-    }
+/// Get last online of a user.
+pub async fn last_online(client: &ApiClient, uid: &str) -> Result<LastOnlineResponse> {
+    let base_url = client.service_url("profile", "/api/social/profile/lastOnline")?;
+    let url = client.make_url(&base_url, &[("nretry", "0".to_string())], true)?;
+    let params = serde_json::json!({ "uid": uid, "conv_type": 1, "imei": client.ctx().imei });
+    client.post_encrypted(&url, &params).await
 }

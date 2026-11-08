@@ -1,45 +1,40 @@
-//! Review pending member request.
-
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::HashMap;
 
-use crate::api::get_user_info::service_url;
-use crate::context::ContextSession;
+use crate::api::client::ApiClient;
 use crate::errors::{Result, ZaloApiError, ZaloError};
-use crate::factory::FactoryUtils;
 
-pub type ReviewPendingMemberRequestResponse = HashMap<String, i64>;
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ReviewPendingMemberRequestType {
+    Deny = 0,
+    Accept = 1,
+}
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ReviewPendingMemberRequestPayload {
-    pub members: Vec<String>,
-    #[serde(rename = "isApprove")]
-    pub is_approve: bool,
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct ReviewPendingMemberRequestResponse {
+    #[serde(default)]
+    pub data: Option<HashMap<String, Vec<Value>>>,
 }
 
 /// Review pending member(s) request.
 pub async fn review_pending_member_request(
-    ctx: &ContextSession,
-    service_map: &Value,
-    payload: ReviewPendingMemberRequestPayload,
-    group_id: &str,
+    client: &ApiClient,
+    payload: (ReviewPendingMemberRequestType, &[String], &str),
 ) -> Result<ReviewPendingMemberRequestResponse> {
-    let base_url = service_url(service_map, "group", "/api/group/pending-mems/review")?;
-    let utils = FactoryUtils::new(ctx);
-    let url = utils.make_url(&base_url, &[], true)?;
-
+    let (req_type, members, group_id) = payload;
+    let base_url = client.service_url("group", "/api/group/pending-mems/review")?;
     let params = serde_json::json!({
         "grid": group_id,
-        "members": payload.members,
-        "isApprove": if payload.is_approve { 1 } else { 0 },
+        "members": serde_json::to_string(members).unwrap_or_else(|_| "[]".to_string()),
+        "isApprove": req_type as i32,
     });
-    let encrypted = utils
+    let encrypted = client
         .encode_aes(&params.to_string())
         .ok_or_else(|| ZaloError::Api(ZaloApiError::new("Failed to encrypt params")))?;
-
-    let res = utils.request_get(&url_with_params(&url, &encrypted)).await?;
-    utils.resolve(res).await
+    let url = url_with_params(&base_url, &encrypted);
+    let res = client.request_get(&url).await?;
+    client.resolve(res).await
 }
 
 fn url_with_params(url: &str, params: &str) -> String {

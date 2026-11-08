@@ -1,37 +1,23 @@
-//! Get sent friend requests.
-
+use serde::{Deserialize, Serialize};
 use serde_json::Value;
-use std::collections::HashMap;
 
-use crate::api::get_user_info::service_url;
-use crate::context::ContextSession;
-use crate::errors::{Result, ZaloApiError, ZaloError};
-use crate::factory::FactoryUtils;
+use crate::api::client::ApiClient;
+use crate::errors::Result;
 
-pub type GetSentFriendRequestResponse = HashMap<String, Value>;
-
-/// Get friend requested.
-pub async fn get_sent_friend_request(
-    ctx: &ContextSession,
-    service_map: &Value,
-) -> Result<GetSentFriendRequestResponse> {
-    let base_url = service_url(service_map, "friend", "/api/friend/requested/list")?;
-    let utils = FactoryUtils::new(ctx);
-    let url = utils.make_url(&base_url, &[], true)?;
-
-    let params = serde_json::json!({ "imei": ctx.imei });
-    let encrypted = utils
-        .encode_aes(&params.to_string())
-        .ok_or_else(|| ZaloError::Api(ZaloApiError::new("Failed to encrypt params")))?;
-
-    let res = utils.request_get(&url_with_params(&url, &encrypted)).await?;
-    utils.resolve(res).await
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct GetSentFriendRequestResponse {
+    #[serde(rename = "recommItems", default)]
+    pub recomm_items: Vec<Value>,
+    #[serde(rename = "totalReq", default)]
+    pub total_req: i64,
 }
 
-fn url_with_params(url: &str, params: &str) -> String {
-    if url.contains('?') {
-        format!("{}&params={}", url, urlencoding::encode(params))
-    } else {
-        format!("{}?params={}", url, urlencoding::encode(params))
-    }
+/// Get my sent friend requests (undone).
+pub async fn get_sent_friend_request(
+    client: &ApiClient,
+) -> Result<GetSentFriendRequestResponse> {
+    let base_url = client.service_url("friend", "/api/friend/requested/list")?;
+    let url = client.make_url(&base_url, &[("nretry", "0".to_string())], true)?;
+    let params = serde_json::json!({ "imei": client.ctx().imei });
+    client.post_encrypted(&url, &params).await
 }

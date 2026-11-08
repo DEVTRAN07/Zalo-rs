@@ -1,38 +1,31 @@
-//! Remove quick message.
-
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
 
-use crate::api::get_user_info::service_url;
-use crate::context::ContextSession;
+use crate::api::client::ApiClient;
 use crate::errors::{Result, ZaloApiError, ZaloError};
-use crate::factory::FactoryUtils;
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct RemoveQuickMessageResponse {
-    #[serde(rename = "itemIds", default)]
-    pub item_ids: Vec<i64>,
+    #[serde(default)]
+    pub item: Option<i64>,
     #[serde(default)]
     pub version: i64,
 }
 
 /// Remove quick message.
 pub async fn remove_quick_message(
-    ctx: &ContextSession,
-    service_map: &Value,
+    client: &ApiClient,
     item_ids: &[i64],
 ) -> Result<RemoveQuickMessageResponse> {
-    let base_url = service_url(service_map, "quick_message", "/api/quickmessage/delete")?;
-    let utils = FactoryUtils::new(ctx);
-    let url = utils.make_url(&base_url, &[], true)?;
-
-    let params = serde_json::json!({ "itemIds": item_ids });
-    let encrypted = utils
+    let base_url = client.service_url("quick_message", "/api/quickmessage/delete")?;
+    let params = serde_json::json!({
+        "itemIds": serde_json::to_string(item_ids).unwrap_or_else(|_| "[]".to_string()),
+    });
+    let encrypted = client
         .encode_aes(&params.to_string())
         .ok_or_else(|| ZaloError::Api(ZaloApiError::new("Failed to encrypt params")))?;
-
-    let res = utils.request_get(&url_with_params(&url, &encrypted)).await?;
-    utils.resolve(res).await
+    let url = url_with_params(&base_url, &encrypted);
+    let res = client.request_get(&url).await?;
+    client.resolve(res).await
 }
 
 fn url_with_params(url: &str, params: &str) -> String {

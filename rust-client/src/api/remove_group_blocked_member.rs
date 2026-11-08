@@ -1,35 +1,34 @@
-//! Remove group blocked member.
-
+use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
-use crate::api::get_user_info::service_url;
-use crate::context::ContextSession;
+use crate::api::client::ApiClient;
 use crate::errors::{Result, ZaloApiError, ZaloError};
-use crate::factory::FactoryUtils;
 
-pub type RemoveGroupBlockedMemberResponse = Value;
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct RemoveGroupBlockedMemberResponse {
+    #[serde(rename = "errorMembers", default)]
+    pub error_members: Vec<String>,
+    #[serde(default)]
+    pub error_data: Value,
+}
 
 /// Remove group blocked member.
 pub async fn remove_group_blocked_member(
-    ctx: &ContextSession,
-    service_map: &Value,
-    member_ids: &[String],
+    client: &ApiClient,
+    member_id: &str,
     group_id: &str,
 ) -> Result<RemoveGroupBlockedMemberResponse> {
-    let base_url = service_url(service_map, "group", "/api/group/blockedmems/remove")?;
-    let utils = FactoryUtils::new(ctx);
-    let url = utils.make_url(&base_url, &[], true)?;
-
+    let base_url = client.service_url("group", "/api/group/blockedmems/remove")?;
     let params = serde_json::json!({
         "grid": group_id,
-        "members": member_ids,
+        "members": [member_id],
     });
-    let encrypted = utils
+    let encrypted = client
         .encode_aes(&params.to_string())
         .ok_or_else(|| ZaloError::Api(ZaloApiError::new("Failed to encrypt params")))?;
-
-    let res = utils.request_get(&url_with_params(&url, &encrypted)).await?;
-    utils.resolve(res).await
+    let url = url_with_params(&base_url, &encrypted);
+    let res = client.request_get(&url).await?;
+    client.resolve(res).await
 }
 
 fn url_with_params(url: &str, params: &str) -> String {

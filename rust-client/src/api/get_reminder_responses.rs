@@ -1,12 +1,7 @@
-//! Get reminder responses.
-
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
 
-use crate::api::get_user_info::service_url;
-use crate::context::ContextSession;
+use crate::api::client::ApiClient;
 use crate::errors::{Result, ZaloApiError, ZaloError};
-use crate::factory::FactoryUtils;
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct GetReminderResponsesResponse {
@@ -18,21 +13,17 @@ pub struct GetReminderResponsesResponse {
 
 /// Get reminder responses.
 pub async fn get_reminder_responses(
-    ctx: &ContextSession,
-    service_map: &Value,
+    client: &ApiClient,
     reminder_id: &str,
 ) -> Result<GetReminderResponsesResponse> {
-    let base_url = service_url(service_map, "group_board", "/api/board/topic/listResponseEvent")?;
-    let utils = FactoryUtils::new(ctx);
-    let url = utils.make_url(&base_url, &[], true)?;
-
+    let base_url = client.service_url("group_board", "/api/board/topic/listResponseEvent")?;
     let params = serde_json::json!({ "eventId": reminder_id });
-    let encrypted = utils
+    let encrypted = client
         .encode_aes(&params.to_string())
         .ok_or_else(|| ZaloError::Api(ZaloApiError::new("Failed to encrypt params")))?;
-
-    let res = utils.request_get(&url_with_params(&url, &encrypted)).await?;
-    utils.resolve(res).await
+    let url = url_with_params(&base_url, &encrypted);
+    let res = client.request_get(&url).await?;
+    client.resolve(res).await
 }
 
 fn url_with_params(url: &str, params: &str) -> String {

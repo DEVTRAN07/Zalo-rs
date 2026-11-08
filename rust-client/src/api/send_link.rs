@@ -1,13 +1,9 @@
-//! Send link.
-
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
-use crate::api::get_user_info::service_url;
+use crate::api::client::ApiClient;
 use crate::api::parse_link;
-use crate::context::ContextSession;
-use crate::errors::{Result, ZaloApiError, ZaloError};
-use crate::factory::FactoryUtils;
+use crate::errors::Result;
 use crate::models::r#enum::ThreadType;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -25,13 +21,12 @@ pub struct SendLinkResponse {
 
 /// Send link.
 pub async fn send_link(
-    ctx: &ContextSession,
-    service_map: &Value,
+    client: &ApiClient,
     options: SendLinkOptions,
     thread_id: &str,
     thread_type: ThreadType,
 ) -> Result<SendLinkResponse> {
-    let parsed = parse_link::parse_link(ctx, service_map, &options.link).await?;
+    let parsed = parse_link::parse_link(client, &options.link).await?;
     let data = parsed.data;
 
     let msg = if let Some(m) = options.msg.as_ref().filter(|s| !s.trim().is_empty()) {
@@ -68,14 +63,13 @@ pub async fn send_link(
         ThreadType::Group => ("/api/group/sendlink", "group"),
         ThreadType::User => ("/api/message/link", "chat"),
     };
-    let base_url = service_url(service_map, base_svc, path)?;
-    let utils = FactoryUtils::new(ctx);
-    let url = utils.make_url(&base_url, &[("nretry", "0".to_string())], true)?;
+    let base_url = client.service_url(base_svc, path)?;
+    let url = client.make_url(&base_url, &[("nretry", "0".to_string())], true)?;
 
     match thread_type {
         ThreadType::Group => {
             params["grid"] = Value::String(thread_id.to_string());
-            params["imei"] = Value::String(ctx.imei.clone());
+            params["imei"] = Value::String(client.ctx().imei.clone());
         }
         ThreadType::User => {
             params["toId"] = Value::String(thread_id.to_string());
@@ -83,10 +77,5 @@ pub async fn send_link(
         }
     }
 
-    let encrypted = utils
-        .encode_aes(&params.to_string())
-        .ok_or_else(|| ZaloError::Api(ZaloApiError::new("Failed to encrypt params")))?;
-
-    let res = utils.request_post(&url, &[("params", encrypted)]).await?;
-    utils.resolve(res).await
+    client.post_encrypted(&url, &params).await
 }
