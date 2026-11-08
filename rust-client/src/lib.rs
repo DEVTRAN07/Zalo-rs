@@ -13,6 +13,8 @@ pub mod factory;
 pub mod http;
 pub mod logger;
 pub mod ws;
+pub mod models;
+pub mod core;
 
 pub use api::ZaloApi;
 pub use client::ZaloClient;
