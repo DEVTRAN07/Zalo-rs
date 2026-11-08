@@ -1,12 +1,10 @@
 //! Get auto reply list.
 
+use crate::api::client::ApiClient;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
-use crate::api::get_user_info::service_url;
-use crate::context::ContextSession;
 use crate::errors::{Result, ZaloApiError, ZaloError};
-use crate::factory::FactoryUtils;
 use crate::models::auto_reply::AutoReplyItem;
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -18,22 +16,23 @@ pub struct GetAutoReplyListResponse {
 }
 
 /// Get auto reply list.
-pub async fn get_auto_reply_list(ctx: &ContextSession, service_map: &Value) -> Result<GetAutoReplyListResponse> {
-    let base_url = service_url(service_map, "auto_reply", "/api/autoreply/list")?;
-    let utils = FactoryUtils::new(ctx);
-    let url = utils.make_url(&base_url, &[], true)?;
-
+pub async fn get_auto_reply_list(client: &ApiClient) -> Result<GetAutoReplyListResponse> {
+    let url = client.service_url("auto_reply", "/api/autoreply/list")?;
     let params = serde_json::json!({
         "version": 0,
-        "cliLang": ctx.language,
+        "cliLang": client.ctx().language,
     });
 
-    let encrypted = utils
+    let encrypted = client
         .encode_aes(&params.to_string())
         .ok_or_else(|| ZaloError::Api(ZaloApiError::new("Failed to encrypt params")))?;
-
-    let res = utils.request_get(&url_with_params(&url, &encrypted)).await?;
-    utils.resolve(res).await
+    let full_url = if url.contains('?') {
+        format!("{}&params={}", url, urlencoding::encode(&encrypted))
+    } else {
+        format!("{}?params={}", url, urlencoding::encode(&encrypted))
+    };
+    let res = client.request_get(&full_url).await?;
+    client.resolve(res).await
 }
 
 fn url_with_params(url: &str, params: &str) -> String {

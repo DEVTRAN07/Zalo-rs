@@ -1,12 +1,10 @@
 //! Get friend onlines.
 
+use crate::api::client::ApiClient;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
-use crate::api::get_user_info::service_url;
-use crate::context::ContextSession;
 use crate::errors::{Result, ZaloApiError, ZaloError};
-use crate::factory::FactoryUtils;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct GetFriendOnlinesStatus {
@@ -27,21 +25,22 @@ pub struct GetFriendOnlinesResponse {
 }
 
 /// Get friend onlines.
-pub async fn get_friend_onlines(ctx: &ContextSession, service_map: &Value) -> Result<GetFriendOnlinesResponse> {
-    let base_url = service_url(service_map, "profile", "/api/social/friend/onlines")?;
-    let utils = FactoryUtils::new(ctx);
-    let url = utils.make_url(&base_url, &[], true)?;
-
+pub async fn get_friend_onlines(client: &ApiClient) -> Result<GetFriendOnlinesResponse> {
+    let url = client.service_url("profile", "/api/social/friend/onlines")?;
     let params = serde_json::json!({
-        "imei": ctx.imei,
+        "imei": client.ctx().imei,
     });
 
-    let encrypted = utils
+    let encrypted = client
         .encode_aes(&params.to_string())
         .ok_or_else(|| ZaloError::Api(ZaloApiError::new("Failed to encrypt params")))?;
-
-    let res = utils.request_get(&url_with_params(&url, &encrypted)).await?;
-    let mut result: GetFriendOnlinesResponse = utils.resolve(res).await?;
+    let full_url = if url.contains('?') {
+        format!("{}&params={}", url, urlencoding::encode(&encrypted))
+    } else {
+        format!("{}?params={}", url, urlencoding::encode(&encrypted))
+    };
+    let res = client.request_get(&full_url).await?;
+    let mut result: GetFriendOnlinesResponse = client.resolve(res).await?;
     for online in &mut result.onlines {
         if let Ok(parsed) = serde_json::from_str::<Value>(&online.status) {
             if let Some(status) = parsed.get("status").and_then(|v| v.as_str()) {
@@ -52,10 +51,3 @@ pub async fn get_friend_onlines(ctx: &ContextSession, service_map: &Value) -> Re
     Ok(result)
 }
 
-fn url_with_params(url: &str, params: &str) -> String {
-    if url.contains('?') {
-        format!("{}&params={}", url, urlencoding::encode(params))
-    } else {
-        format!("{}?params={}", url, urlencoding::encode(params))
-    }
-}

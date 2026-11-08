@@ -1,12 +1,10 @@
 //! Get pin conversations.
 
+use crate::api::client::ApiClient;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
-use crate::api::get_user_info::service_url;
-use crate::context::ContextSession;
 use crate::errors::{Result, ZaloApiError, ZaloError};
-use crate::factory::FactoryUtils;
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct GetPinConversationsResponse {
@@ -15,19 +13,20 @@ pub struct GetPinConversationsResponse {
 }
 
 /// Get pin conversations.
-pub async fn get_pin_conversations(ctx: &ContextSession, service_map: &Value) -> Result<GetPinConversationsResponse> {
-    let base_url = service_url(service_map, "conversation", "/api/conv/pin/list")?;
-    let utils = FactoryUtils::new(ctx);
-    let url = utils.make_url(&base_url, &[], true)?;
-
+pub async fn get_pin_conversations(client: &ApiClient) -> Result<GetPinConversationsResponse> {
+    let url = client.service_url("conversation", "/api/conv/pin/list")?;
     let params = serde_json::json!({});
 
-    let encrypted = utils
+    let encrypted = client
         .encode_aes(&params.to_string())
         .ok_or_else(|| ZaloError::Api(ZaloApiError::new("Failed to encrypt params")))?;
-
-    let res = utils.request_get(&url_with_params(&url, &encrypted)).await?;
-    utils.resolve(res).await
+    let full_url = if url.contains('?') {
+        format!("{}&params={}", url, urlencoding::encode(&encrypted))
+    } else {
+        format!("{}?params={}", url, urlencoding::encode(&encrypted))
+    };
+    let res = client.request_get(&full_url).await?;
+    client.resolve(res).await
 }
 
 fn url_with_params(url: &str, params: &str) -> String {

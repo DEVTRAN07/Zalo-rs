@@ -553,163 +553,203 @@ impl ZaloApi {
     }
 
     pub fn get_own_id(&self) -> Result<GetOwnIdResponse> {
-        get_own_id::get_own_id(&self.ctx)
+        let client = self.api_client();
+        get_own_id::get_own_id(&client)
     }
 
     pub fn get_cookie(&self) -> Result<GetCookieResponse> {
-        get_cookie::get_cookie(&self.ctx)
+        let client = self.api_client();
+        get_cookie::get_cookie(&client)
     }
 
     pub fn get_context(&self) -> Result<GetContextResponse> {
-        get_context::get_context(&self.ctx)
+        let client = self.api_client();
+        get_context::get_context(&client)
     }
 
     pub async fn get_alias_list(&self, count: Option<i32>, page: Option<i32>) -> Result<GetAliasListResponse> {
-        get_alias_list::get_alias_list(&self.ctx, &self.zpw_service_map, count, page).await
+        let client = self.api_client();
+        get_alias_list::get_alias_list(&client, count, page).await
     }
 
     pub async fn get_all_friends(&self, count: Option<i32>, page: Option<i32>, avatar_size: Option<AvatarSize>) -> Result<GetAllFriendsResponse> {
-        get_all_friends::get_all_friends(&self.ctx, &self.zpw_service_map, count, page, avatar_size).await
+        let client = self.api_client();
+        get_all_friends::get_all_friends(&client, count, page, avatar_size).await
     }
 
     pub async fn get_all_groups(&self) -> Result<GetAllGroupsResponse> {
-        get_all_groups::get_all_groups(&self.ctx, &self.zpw_service_map).await
+        let client = self.api_client();
+        get_all_groups::get_all_groups(&client).await
     }
 
     pub async fn get_archived_chat_list(&self) -> Result<GetArchivedChatListResponse> {
-        get_archived_chat_list::get_archived_chat_list(&self.ctx, &self.zpw_service_map).await
+        let client = self.api_client();
+        get_archived_chat_list::get_archived_chat_list(&client).await
     }
 
     pub async fn get_auto_delete_chat(&self) -> Result<GetAutoDeleteChatResponse> {
-        get_auto_delete_chat::get_auto_delete_chat(&self.ctx, &self.zpw_service_map).await
+        let client = self.api_client();
+        get_auto_delete_chat::get_auto_delete_chat(&client).await
     }
 
     pub async fn get_auto_reply_list(&self) -> Result<GetAutoReplyListResponse> {
-        get_auto_reply_list::get_auto_reply_list(&self.ctx, &self.zpw_service_map).await
+        let client = self.api_client();
+        get_auto_reply_list::get_auto_reply_list(&client).await
     }
 
     pub async fn get_avatar_list(&self, count: Option<i32>, page: Option<i32>) -> Result<GetAvatarListResponse> {
-        get_avatar_list::get_avatar_list(&self.ctx, &self.zpw_service_map, count, page).await
+        let client = self.api_client();
+        get_avatar_list::get_avatar_list(&client, count, page).await
     }
 
     pub async fn get_avatar_url_profile(&self, friend_ids: Vec<String>, avatar_size: Option<AvatarSize>) -> Result<GetAvatarUrlProfileResponse> {
-        get_avatar_url_profile::get_avatar_url_profile(&self.ctx, &self.zpw_service_map, friend_ids, avatar_size).await
+        let client = self.api_client();
+        get_avatar_url_profile::get_avatar_url_profile(&client, friend_ids, avatar_size).await
     }
 
     pub async fn get_biz_account(&self, friend_id: &str) -> Result<GetBizAccountResponse> {
-        get_biz_account::get_biz_account(&self.ctx, &self.zpw_service_map, friend_id).await
+        let client = self.api_client();
+        get_biz_account::get_biz_account(&client, friend_id).await
     }
 
     pub async fn get_catalog_list(&self, payload: Option<GetCatalogListPayload>) -> Result<GetCatalogListResponse> {
-        get_catalog_list::get_catalog_list(&self.ctx, &self.zpw_service_map, payload).await
+        let client = self.api_client();
+        get_catalog_list::get_catalog_list(&client, payload).await
     }
 
     pub async fn get_close_friends(&self) -> Result<GetCloseFriendsResponse> {
-        get_close_friends::get_close_friends(&self.ctx, &self.zpw_service_map).await
+        let client = self.api_client();
+        get_close_friends::get_close_friends(&client).await
     }
 
     pub async fn get_friend_board_list(&self) -> Result<GetFriendBoardListResponse> {
-        get_friend_board_list::get_friend_board_list(&self.ctx, &self.zpw_service_map).await
+        let client = self.api_client();
+        get_friend_board_list::get_friend_board_list(&client).await
     }
 
     pub async fn get_friend_onlines(&self) -> Result<GetFriendOnlinesResponse> {
-        get_friend_onlines::get_friend_onlines(&self.ctx, &self.zpw_service_map).await
+        let client = self.api_client();
+        get_friend_onlines::get_friend_onlines(&client).await
     }
 
     pub async fn get_friend_recommendations(&self) -> Result<GetFriendRecommendationsResponse> {
-        get_friend_recommendations::get_friend_recommendations(&self.ctx, &self.zpw_service_map).await
+        let client = self.api_client();
+        get_friend_recommendations::get_friend_recommendations(&client).await
     }
 
     pub async fn get_friend_request_status(&self, friend_id: &str) -> Result<GetFriendRequestStatusResponse> {
-        get_friend_request_status::get_friend_request_status(&self.ctx, &self.zpw_service_map, friend_id).await
+        let client = self.api_client();
+        get_friend_request_status::get_friend_request_status(&client, friend_id).await
     }
 
     pub async fn get_full_avatar(&self, user_id: &str) -> Result<GetFullAvatarResponse> {
-        get_full_avatar::get_full_avatar(&self.ctx, &self.zpw_service_map, user_id).await
+        let client = self.api_client();
+        get_full_avatar::get_full_avatar(&client, user_id).await
     }
 
     pub async fn get_group_blocked_member(&self, group_id: &str) -> Result<GetGroupBlockedMemberResponse> {
-        get_group_blocked_member::get_group_blocked_member(&self.ctx, &self.zpw_service_map, group_id).await
+        let client = self.api_client();
+        get_group_blocked_member::get_group_blocked_member(&client, group_id).await
     }
 
     pub async fn get_group_chat_history(&self, group_id: &str, last_id: Option<i64>, count: Option<i32>) -> Result<GetGroupChatHistoryResponse> {
-        get_group_chat_history::get_group_chat_history(&self.ctx, &self.zpw_service_map, group_id, last_id, count).await
+        let client = self.api_client();
+        get_group_chat_history::get_group_chat_history(&client, group_id, last_id, count).await
     }
 
     pub async fn get_group_info(&self, group_ids: Vec<String>) -> Result<GetGroupInfoResponse> {
-        get_group_info::get_group_info(&self.ctx, &self.zpw_service_map, group_ids).await
+        let client = self.api_client();
+        get_group_info::get_group_info(&client, group_ids).await
     }
 
     pub async fn get_group_invite_box_info(&self, group_id: &str) -> Result<GetGroupInviteBoxInfoResponse> {
-        get_group_invite_box_info::get_group_invite_box_info(&self.ctx, &self.zpw_service_map, group_id).await
+        let client = self.api_client();
+        get_group_invite_box_info::get_group_invite_box_info(&client, group_id).await
     }
 
     pub async fn get_group_invite_box_list(&self) -> Result<GetGroupInviteBoxListResponse> {
-        get_group_invite_box_list::get_group_invite_box_list(&self.ctx, &self.zpw_service_map).await
+        let client = self.api_client();
+        get_group_invite_box_list::get_group_invite_box_list(&client).await
     }
 
     pub async fn get_group_link_detail(&self, link: &str) -> Result<GetGroupLinkDetailResponse> {
-        get_group_link_detail::get_group_link_detail(&self.ctx, &self.zpw_service_map, link).await
+        let client = self.api_client();
+        get_group_link_detail::get_group_link_detail(&client, link).await
     }
 
     pub async fn get_group_link_info(&self, group_id: &str) -> Result<GetGroupLinkInfoResponse> {
-        get_group_link_info::get_group_link_info(&self.ctx, &self.zpw_service_map, group_id).await
+        let client = self.api_client();
+        get_group_link_info::get_group_link_info(&client, group_id).await
     }
 
     pub async fn get_group_members_info(&self, group_id: &str, member_ids: Vec<String>) -> Result<GetGroupMembersInfoResponse> {
-        get_group_members_info::get_group_members_info(&self.ctx, &self.zpw_service_map, group_id, member_ids).await
+        let client = self.api_client();
+        get_group_members_info::get_group_members_info(&client, group_id, member_ids).await
     }
 
     pub async fn get_hidden_conversations(&self) -> Result<GetHiddenConversationsResponse> {
-        get_hidden_conversations::get_hidden_conversations(&self.ctx, &self.zpw_service_map).await
+        let client = self.api_client();
+        get_hidden_conversations::get_hidden_conversations(&client).await
     }
 
     pub async fn get_labels(&self) -> Result<GetLabelsResponse> {
-        get_labels::get_labels(&self.ctx, &self.zpw_service_map).await
+        let client = self.api_client();
+        get_labels::get_labels(&client).await
     }
 
     pub async fn get_list_bank(&self) -> Result<GetListBankResponse> {
-        get_list_bank::get_list_bank(&self.ctx, &self.zpw_service_map).await
+        let client = self.api_client();
+        get_list_bank::get_list_bank(&client).await
     }
 
     pub async fn get_list_bank_account(&self) -> Result<GetListBankAccountResponse> {
-        get_list_bank_account::get_list_bank_account(&self.ctx, &self.zpw_service_map).await
+        let client = self.api_client();
+        get_list_bank_account::get_list_bank_account(&client).await
     }
 
     pub async fn get_list_board(&self) -> Result<GetListBoardResponse> {
-        get_list_board::get_list_board(&self.ctx, &self.zpw_service_map).await
+        let client = self.api_client();
+        get_list_board::get_list_board(&client).await
     }
 
     pub async fn get_list_device(&self) -> Result<GetListDeviceResponse> {
-        get_list_device::get_list_device(&self.ctx, &self.zpw_service_map).await
+        let client = self.api_client();
+        get_list_device::get_list_device(&client).await
     }
 
     pub async fn get_list_reminder(&self) -> Result<GetListReminderResponse> {
-        get_list_reminder::get_list_reminder(&self.ctx, &self.zpw_service_map).await
+        let client = self.api_client();
+        get_list_reminder::get_list_reminder(&client).await
     }
 
     pub async fn get_multi_users_by_phones(&self, phones: Vec<String>) -> Result<GetMultiUsersByPhonesResponse> {
-        get_multi_users_by_phones::get_multi_users_by_phones(&self.ctx, &self.zpw_service_map, phones).await
+        let client = self.api_client();
+        get_multi_users_by_phones::get_multi_users_by_phones(&client, phones).await
     }
 
     pub async fn get_mute(&self) -> Result<GetMuteResponse> {
-        get_mute::get_mute(&self.ctx, &self.zpw_service_map).await
+        let client = self.api_client();
+        get_mute::get_mute(&client).await
     }
 
     pub async fn get_pending_group_members(&self, group_id: &str) -> Result<GetPendingGroupMembersResponse> {
-        get_pending_group_members::get_pending_group_members(&self.ctx, &self.zpw_service_map, group_id).await
+        let client = self.api_client();
+        get_pending_group_members::get_pending_group_members(&client, group_id).await
     }
 
     pub async fn get_pin_conversations(&self) -> Result<GetPinConversationsResponse> {
-        get_pin_conversations::get_pin_conversations(&self.ctx, &self.zpw_service_map).await
+        let client = self.api_client();
+        get_pin_conversations::get_pin_conversations(&client).await
     }
 
     pub async fn get_poll_detail(&self, poll_id: i64) -> Result<GetPollDetailResponse> {
-        get_poll_detail::get_poll_detail(&self.ctx, &self.zpw_service_map, poll_id).await
+        let client = self.api_client();
+        get_poll_detail::get_poll_detail(&client, poll_id).await
     }
 
     pub async fn get_product_catalog_list(&self, catalog_id: &str) -> Result<GetProductCatalogListResponse> {
-        get_product_catalog_list::get_product_catalog_list(&self.ctx, &self.zpw_service_map, catalog_id).await
+        let client = self.api_client();
+        get_product_catalog_list::get_product_catalog_list(&client, catalog_id).await
     }
 
     // --- batch 3 ---
