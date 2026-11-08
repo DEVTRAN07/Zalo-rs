@@ -57,12 +57,14 @@ pub enum ListenerEvent {
 pub struct Listener {
     ctx: ContextSession,
     urls: Vec<String>,
+    self_listen: bool,
     stop_tx: Option<mpsc::Sender<()>>,
 }
 
 impl Listener {
     pub fn new(ctx: ContextSession, urls: Vec<String>) -> Self {
         Self {
+            self_listen: ctx.options.self_listen,
             ctx,
             urls,
             stop_tx: None,
@@ -124,7 +126,7 @@ impl Listener {
                 zlog_info!("Connecting to WebSocket: {}", ws_url);
                 let cipher_key: Arc<Mutex<Option<String>>> = Arc::new(Mutex::new(None));
 
-                let connect_result = connect_and_run(&ctx, &ws_url, event_tx.clone(), &mut stop_rx, cipher_key).await;
+                let connect_result = connect_and_run(&ctx, &ws_url, event_tx.clone(), &mut stop_rx, cipher_key, ctx.options.self_listen).await;
 
                 match connect_result {
                     Ok(should_stop) => {
@@ -167,6 +169,7 @@ async fn connect_and_run(
     event_tx: mpsc::UnboundedSender<ListenerEvent>,
     stop_rx: &mut mpsc::Receiver<()>,
     cipher_key: Arc<Mutex<Option<String>>>,
+    self_listen: bool,
 ) -> Result<bool> {
     // Build request with headers matching the TypeScript client exactly.
     let mut request = ws_url.into_client_request().map_err(|e| ZaloError::WebSocket(e.to_string()))?;
@@ -233,7 +236,7 @@ async fn connect_and_run(
                 };
                 match msg {
                     Ok(WsMessage::Binary(data)) => {
-                        handle_binary_message(&data, &cipher_key, &event_tx, &out_tx).await;
+                        handle_binary_message(&data, &cipher_key, &event_tx, &out_tx, self_listen).await;
                     }
                     Ok(WsMessage::Close(frame)) => {
                         zlog_verbose!("WS close frame: {:?}", frame);
@@ -252,11 +255,28 @@ async fn connect_and_run(
     }
 }
 
+
+/// Check if an event payload indicates it was sent by the current account.
+/// Returns true only when a clear boolean `isSelf` (or `data.isSelf`) is present and true.
+fn is_self_event(data: &Value) -> bool {
+    fn check(v: &Value) -> Option<bool> {
+        v.as_bool()
+    }
+    if let Some(b) = data.get("isSelf").and_then(check) {
+        return b;
+    }
+    if let Some(b) = data.get("data").and_then(|d| d.get("isSelf")).and_then(check) {
+        return b;
+    }
+    false
+}
+
 async fn handle_binary_message(
     data: &[u8],
     cipher_key: &Arc<Mutex<Option<String>>>,
     event_tx: &mpsc::UnboundedSender<ListenerEvent>,
     out_tx: &mpsc::UnboundedSender<Vec<u8>>,
+    self_listen: bool,
 ) {
     if data.len() < 4 {
         return;
@@ -325,21 +345,37 @@ async fn handle_binary_message(
 
     match (cmd, sub_cmd) {
         (501, 0) | (551, 0) => {
+            if !self_listen && is_self_event(&event_data) {
+                return;
+            }
             let _ = event_tx.send(ListenerEvent::Message(event_data));
         }
         (521, 0) => {
+            if !self_listen && is_self_event(&event_data) {
+                return;
+            }
             let _ = event_tx.send(ListenerEvent::GroupMessage(event_data));
         }
         (612, _) | (610, _) | (611, _) => {
+            if !self_listen && is_self_event(&event_data) {
+                return;
+            }
             let _ = event_tx.send(ListenerEvent::Reaction(event_data));
         }
         (601, 0) => {
+            if !self_listen && is_self_event(&event_data) {
+                return;
+            }
             let _ = event_tx.send(ListenerEvent::Control(event_data));
         }
         (510, 1) | (511, 1) => {
             let _ = event_tx.send(ListenerEvent::OldMessages(event_data));
         }
         (502, 0) | (522, 0) | (602, 0) => {
+            // TS filters GroupDeliveredMessage (cmd 522) by isSelf only.
+            if cmd == 522 && !self_listen && is_self_event(&event_data) {
+                return;
+            }
             let _ = event_tx.send(ListenerEvent::SeenDelivered(event_data));
         }
         _ => {
