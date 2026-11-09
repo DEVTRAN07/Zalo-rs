@@ -305,7 +305,7 @@ pub use send_message::{SendMessageOptions, Urgency};
 
 
 pub use forward_message::{ForwardMessagePayload, ForwardMessageResponse, ForwardMessageSuccess, ForwardMessageFail};
-pub use login_qr::{LoginQrResult, QrGenerateResponse, QrScanResponse, QrConfirmResponse, QrUserInfoResponse, login_qr_start, load_login_page, get_login_info as get_login_info_qr, verify_client as verify_client_qr, generate_qr, waiting_scan, waiting_confirm, check_session as check_session_qr, get_user_info_qr};
+pub use login_qr::{LoginQrCallback, LoginQrEvent, LoginQrOptions, LoginQrResult, QrGenerateResponse, QrScanResponse, QrConfirmResponse, QrUserInfoResponse, login_qr, load_login_page, get_login_info as get_login_info_qr, verify_client as verify_client_qr, generate_qr, waiting_scan, waiting_confirm, check_session as check_session_qr, get_user_info_qr};
 pub use send_seen_event::{SendSeenEventMessageParams, SendSeenEventResponse};
 pub use set_hidden_conversations::SetHiddenConversationsResponse;
 pub use set_mute::{MuteAction, MuteDuration, MuteDurationPreset, SetMuteResponse};

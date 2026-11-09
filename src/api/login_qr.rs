@@ -1,25 +1,34 @@
 //! QR-code login flow (pre-authentication, uses `ContextBase`).
 //!
-//! This is a best-effort port of the TypeScript `loginQR` flow. It provides
-//! the low-level HTTP steps; interactive callback/UI handling is left to the
-//! caller. The flow:
-//! 1. `load_login_page` to discover the login JS version
-//! 2. `get_login_info` / `verify_client`
-//! 3. `generate_qr` to get QR image + code
-//! 4. `waiting_scan` (polls) then `waiting_confirm` (polls)
-//! 5. `check_session` + `get_user_info_qr` to finalize
+//! Full interactive port of the TypeScript `loginQR` flow:
+//! 1. `load_login_page` — GET `id.zalo.me/account?continue=...`
+//! 2. `get_login_info` — POST `/account/logininfo`
+//! 3. `verify_client` — POST `/account/verify-client`
+//! 4. `generate_qr` — POST `/account/authen/qr/generate`
+//! 5. `waiting_scan` — poll `/account/authen/qr/waiting-scan`
+//! 6. `waiting_confirm` — poll `/account/authen/qr/waiting-confirm`
+//! 7. `check_session` — GET `/account/checksession`
+//! 8. `get_user_info_qr` — GET `jr.chat.zalo.me/jr/userinfo`
 //!
-//! Note: cookie-jar mutation across requests relies on the shared `reqwest`
-//! client in `ContextBase.http` having cookie store enabled. The TS version
-//! used `tough-cookie`; in Rust, `reqwest::Client` with `cookie_store(true)`
-//! provides equivalent behavior when built accordingly.
+//! The flow respects a 100s QR expiry timeout and reports progress through
+//! a `LoginQrCallback`. Cookies set during the flow are persisted in the
+//! shared reqwest cookie store and returned in [`LoginQrResult`].
 
+use base64::engine::{general_purpose::STANDARD, Engine as _};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
+use tokio::time::{Duration, timeout};
+use url::Url;
 
-use crate::context::ContextBase;
+use crate::context::{ContextBase, ZaloCookie};
 use crate::errors::{Result, ZaloApiError, ZaloError};
 use crate::http;
+use crate::zlog_info;
+
+const QR_TIMEOUT_SECS: u64 = 100;
+const POLL_INTERVAL_SECS: u64 = 2;
+
+// --- Data structures (ported from the TypeScript flow) ---
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct QrGenerateData {
@@ -88,18 +97,51 @@ pub struct QrUserInfoResponse {
     pub error_message: String,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+/// Result of a completed QR login: cookies persisted during the flow plus
+/// the user info payload returned by `jr.chat.zalo.me/jr/userinfo`.
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct LoginQrResult {
+    pub cookies: Vec<ZaloCookie>,
     pub user_info: Value,
-    pub login_version: String,
 }
+
+/// Events reported to the UI callback during the QR login flow.
+#[derive(Debug, Clone)]
+pub enum LoginQrEvent {
+    QrGenerated {
+        code: String,
+        image: String,
+        options: Value,
+        token: String,
+    },
+    QrScanned {
+        avatar: String,
+        display_name: String,
+    },
+    QrDeclined {
+        code: String,
+    },
+    GotLoginInfo,
+    QrExpired,
+    Error(String),
+}
+
+/// UI callback invoked with [`LoginQrEvent`]s during the flow.
+pub type LoginQrCallback = Box<dyn Fn(LoginQrEvent) + Send + Sync>;
+
+/// Options for [`login_qr`].
+pub struct LoginQrOptions {
+    pub user_agent: String,
+    pub qr_path: Option<String>,
+}
+
+// --- Low-level HTTP steps ---
 
 /// Discover the login page JS version.
 pub async fn load_login_page(ctx: &ContextBase) -> Result<String> {
     let url = "https://id.zalo.me/account?continue=https%3A%2F%2Fchat.zalo.me%2F";
     let res = http::get(ctx, url).await?;
     let html = res.text().await?;
-    // Match https://stc-zlogin.zdn.vn/main-<version>.js
     let marker = "https://stc-zlogin.zdn.vn/main-";
     if let Some(start) = html.find(marker) {
         let rest = &html[start + marker.len()..];
@@ -165,6 +207,7 @@ pub async fn waiting_scan(ctx: &ContextBase, version: &str, code: &str) -> Resul
         .await?;
         let resp: QrScanResponse = serde_json::from_value(data).unwrap_or_default();
         if resp.error_code == 8 {
+            tokio::time::sleep(Duration::from_secs(POLL_INTERVAL_SECS)).await;
             continue;
         }
         return Ok(resp);
@@ -172,7 +215,7 @@ pub async fn waiting_scan(ctx: &ContextBase, version: &str, code: &str) -> Resul
 }
 
 pub async fn waiting_confirm(
-    ctx: &ContextBase,
+    ctx: &mut ContextBase,
     version: &str,
     code: &str,
 ) -> Result<QrConfirmResponse> {
@@ -191,6 +234,7 @@ pub async fn waiting_confirm(
         .await?;
         let resp: QrConfirmResponse = serde_json::from_value(data).unwrap_or_default();
         if resp.error_code == 8 {
+            tokio::time::sleep(Duration::from_secs(POLL_INTERVAL_SECS)).await;
             continue;
         }
         return Ok(resp);
@@ -211,21 +255,165 @@ pub async fn get_user_info_qr(ctx: &ContextBase) -> Result<QrUserInfoResponse> {
     Ok(serde_json::from_value(data).unwrap_or_default())
 }
 
-/// Run the QR login flow (non-interactive skeleton).
+/// Save a base64-encoded QR image (data URI prefix stripped) to a file.
+async fn save_qr_to_file(path: &str, image_base64: &str) -> Result<()> {
+    let bytes = STANDARD.decode(image_base64)
+        .map_err(|e| ZaloError::Api(ZaloApiError::new(format!("Invalid base64 QR image: {e}"))))?;
+    tokio::fs::write(path, bytes)
+        .await
+        .map_err(|e| ZaloError::Io(e))?;
+    Ok(())
+}
+
+/// Extract cookies persisted in the shared reqwest cookie store as [`ZaloCookie`]s.
+async fn extract_cookies(ctx: &ContextBase) -> Result<Vec<ZaloCookie>> {
+    let http = http::get_http(ctx).await?;
+    let store = http
+        .cookie_store
+        .lock()
+        .map_err(|_| ZaloError::Api(ZaloApiError::new("Cookie store lock poisoned")))?;
+
+    let mut cookies = Vec::new();
+    for url_str in ["https://id.zalo.me/", "https://chat.zalo.me/"] {
+        let url = Url::parse(url_str)?;
+        for (name, value) in store.get_request_values(&url) {
+            cookies.push(ZaloCookie {
+                name: name.to_string(),
+                value: value.to_string(),
+                domain: None,
+                path: None,
+                expiration_date: None,
+                host_only: None,
+                http_only: None,
+                secure: None,
+                same_site: None,
+                session: None,
+                store_id: None,
+                key: None,
+            });
+        }
+    }
+    Ok(cookies)
+}
+
+/// Run the full interactive QR login flow.
 ///
-/// Returns the generated QR data and login version. The caller is responsible
-/// for displaying the QR, then calling `waiting_scan`, `waiting_confirm`,
-/// `check_session`, and `get_user_info_qr` to complete the flow.
-pub async fn login_qr_start(ctx: &ContextBase) -> Result<(String, QrGenerateResponse)> {
+/// Steps: load login page → get login info → verify client → generate QR →
+/// wait for scan → wait for confirm → check session → get user info.
+///
+/// The scan/confirm polling is bounded by a 100s timeout matching the TS
+/// QR expiry. On timeout a [`LoginQrEvent::QrExpired`] is emitted and an
+/// error is returned; the caller may retry.
+pub async fn login_qr(
+    ctx: &mut ContextBase,
+    options: LoginQrOptions,
+    callback: Option<LoginQrCallback>,
+) -> Result<LoginQrResult> {
+    ctx.user_agent = Some(options.user_agent.clone());
+
+    let emit = |event: LoginQrEvent| {
+        if let Some(cb) = &callback {
+            cb(event);
+        }
+    };
+
+    // 1. Load login page to discover the login JS version.
     let version = load_login_page(ctx).await?;
+    zlog_info!("Got login version: {}", version);
+
+    // 2. Get login info (errors are logged but non-fatal, mirroring TS).
     let _ = get_login_info(ctx, &version).await;
+    emit(LoginQrEvent::GotLoginInfo);
+
+    // 3. Verify client.
     let _ = verify_client(ctx, &version).await;
+
+    // 4. Generate QR.
     let qr = generate_qr(ctx, &version).await?;
-    if qr.data.is_none() {
-        return Err(ZaloError::Api(ZaloApiError::new(format!(
+    let qr_data = qr.data.ok_or_else(|| {
+        ZaloError::Api(ZaloApiError::new(format!(
             "Unable to generate QRCode: {}",
             qr.error_message
-        ))));
+        )))
+    })?;
+
+    let image = qr_data
+        .image
+        .strip_prefix("data:image/png;base64,")
+        .unwrap_or(&qr_data.image)
+        .to_string();
+
+    emit(LoginQrEvent::QrGenerated {
+        code: qr_data.code.clone(),
+        image: image.clone(),
+        options: qr_data.options.clone(),
+        token: qr_data.token.clone(),
+    });
+
+    // Save QR to file when a path is provided.
+    if let Some(path) = &options.qr_path {
+        save_qr_to_file(path, &image).await?;
+        zlog_info!("Scan the QR code at '{}'", path);
     }
-    Ok((version, qr))
+
+    // 5-6. Wait for scan, then wait for confirm, bounded by the 100s expiry.
+    let flow = async {
+        let scan_result = waiting_scan(ctx, &version, &qr_data.code).await?;
+        let scan_data = scan_result
+            .data
+            .ok_or_else(|| ZaloError::Api(ZaloApiError::new("Cannot get scan result")))?;
+
+        emit(LoginQrEvent::QrScanned {
+            avatar: scan_data.avatar.clone(),
+            display_name: scan_data.display_name.clone(),
+        });
+
+        let confirm_result = waiting_confirm(ctx, &version, &qr_data.code).await?;
+        if confirm_result.error_code == -13 {
+            emit(LoginQrEvent::QrDeclined {
+                code: qr_data.code.clone(),
+            });
+            return Err::<(), ZaloError>(ZaloError::Api(ZaloApiError::new(
+                "QRCode login declined",
+            )));
+        } else if confirm_result.error_code != 0 {
+            return Err::<(), ZaloError>(ZaloError::Api(ZaloApiError::new(format!(
+                "An error has occurred.\nResponse: {}",
+                serde_json::to_string(&confirm_result).unwrap_or_default()
+            ))));
+        }
+
+        Ok::<(), ZaloError>(())
+    };
+
+    match timeout(Duration::from_secs(QR_TIMEOUT_SECS), flow).await {
+        Ok(Ok(())) => {}
+        Ok(Err(e)) => return Err(e),
+        Err(_) => {
+            emit(LoginQrEvent::QrExpired);
+            return Err(ZaloError::Api(ZaloApiError::new(format!(
+                "QR code expired after {QR_TIMEOUT_SECS}s"
+            ))));
+        }
+    }
+
+    // 7. Check session.
+    let _ = check_session(ctx).await?;
+    zlog_info!("Successfully logged into the account");
+
+    // 8. Get user info.
+    let user_info = get_user_info_qr(ctx).await?;
+    let user_info_data = user_info
+        .data
+        .ok_or_else(|| ZaloError::Api(ZaloApiError::new("Can't get account info")))?;
+    if !user_info_data.logged {
+        return Err(ZaloError::Api(ZaloApiError::new("Can't login")));
+    }
+
+    let cookies = extract_cookies(ctx).await?;
+
+    Ok(LoginQrResult {
+        cookies,
+        user_info: user_info_data.info,
+    })
 }
