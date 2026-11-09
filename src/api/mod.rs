@@ -301,7 +301,7 @@ pub use send_sticker::{SendStickerPayload, SendStickerResponse};
 pub use send_typing_event::SendTypingEventResponse;
 pub use send_video::{SendVideoOptions, SendVideoResponse};
 pub use send_voice::{SendVoiceOptions, SendVoiceResponse};
-pub use send_message::{SendMessageOptions, Urgency};
+pub use send_message::{SendMessageOptions, SendMessageResponse, Urgency};
 
 
 pub use forward_message::{ForwardMessagePayload, ForwardMessageResponse, ForwardMessageSuccess, ForwardMessageFail};
@@ -383,14 +383,14 @@ impl ZaloApi {
         message: &str,
         thread_id: &str,
         thread_type: u8,
-    ) -> Result<serde_json::Value> {
+    ) -> Result<SendMessageResponse> {
         send_message::send_message(self.api_client(), message, thread_id, thread_type).await
     }
 
     pub async fn send_message_options(
         &self,
         options: send_message::SendMessageOptions,
-    ) -> Result<serde_json::Value> {
+    ) -> Result<SendMessageResponse> {
         send_message::send_message_options(self.api_client(), options).await
     }
 

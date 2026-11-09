@@ -17,6 +17,12 @@ pub enum Urgency {
     Urgent = 2,
 }
 
+/// Typed response for send_message and send_message_options.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SendMessageResponse {
+    pub msg_id: i64,
+}
+
 /// Options for [`send_message_options`], mirroring the TypeScript `MessageContent`.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SendMessageOptions {
@@ -59,6 +65,14 @@ fn insert_opt(map: &mut Map<String, Value>, key: &str, value: Option<Value>) {
     }
 }
 
+/// Extract msg_id from API response (handles both msgId and msg_id).
+fn extract_msg_id(response: Value) -> Result<i64> {
+    response.get("msgId")
+        .or_else(|| response.get("msg_id"))
+        .and_then(|v| v.as_i64())
+        .ok_or_else(|| ZaloError::Api(ZaloApiError::new("Missing msg_id in response")))
+}
+
 /// Send a plain text message.
 ///
 /// `thread_type`: 0 = user, 1 = group.
@@ -69,7 +83,7 @@ pub async fn send_message(
     message: &str,
     thread_id: &str,
     thread_type: u8,
-) -> Result<Value> {
+) -> Result<SendMessageResponse> {
     if message.is_empty() {
         return Err(ZaloError::Api(ZaloApiError::new("Missing message content")));
     }
@@ -110,7 +124,9 @@ pub async fn send_message(
         })
     };
 
-    client.post_encrypted(&url, &params).await
+    let response = client.post_encrypted(&url, &params).await?;
+    let msg_id = extract_msg_id(response)?;
+    Ok(SendMessageResponse { msg_id })
 }
 
 /// Send a message with optional mentions, quotes, attachments, text styles,
@@ -123,7 +139,7 @@ pub async fn send_message(
 ///
 /// When only a plain text message is given the behaviour matches
 /// [`send_message`].
-pub async fn send_message_options(client: &ApiClient, options: SendMessageOptions) -> Result<Value> {
+pub async fn send_message_options(client: &ApiClient, options: SendMessageOptions) -> Result<SendMessageResponse> {
     let SendMessageOptions {
         message,
         thread_id,
@@ -170,7 +186,7 @@ pub async fn send_message_options(client: &ApiClient, options: SendMessageOption
     } else if mention_present && is_group {
         format!("{}/mention", root)
     } else if is_group {
-        "/api/group/sendmsg".to_string()
+        "/api/group/ssendmsg".to_string()
     } else {
         "/api/message/sms".to_string()
     };
@@ -224,9 +240,12 @@ pub async fn send_message_options(client: &ApiClient, options: SendMessageOption
             crate::api::upload_attachment::upload_attachment(client, sources, &thread_id, thread_type)
                 .await?;
         if message_empty {
-            return Ok(serde_json::to_value(&uploaded).unwrap_or(Value::Null));
+            let msg_id = extract_msg_id(serde_json::to_value(&uploaded).unwrap_or(Value::Null))?;
+            return Ok(SendMessageResponse { msg_id });
         }
     }
 
-    client.post_encrypted(&url, &params).await
+    let response = client.post_encrypted(&url, &params).await?;
+    let msg_id = extract_msg_id(response)?;
+    Ok(SendMessageResponse { msg_id })
 }
