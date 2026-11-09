@@ -5,7 +5,7 @@ use std::sync::Arc;
 
 use crate::api::login as login_api;
 use crate::api::ZaloApi;
-use crate::context::{create_context, is_context_session, ContextSession, Credentials, Options, ZaloCookie};
+use crate::context::{create_context, ContextSession, Credentials, Options, ZaloCookie};
 use crate::errors::{Result, ZaloApiError, ZaloError};
 use crate::http;
 use crate::{zlog_info};
@@ -129,7 +129,7 @@ impl ZaloClient {
         ctx.settings = settings;
         ctx.extra_ver = server_info.extra_ver.clone();
 
-        if !is_context_session(ctx) {
+        if crate::context::ContextSession::from_base(ctx).is_none() {
             return Err(ZaloError::Api(ZaloApiError::new("Khởi tạo ngữ cảnh thất bại")));
         }
 

@@ -1,7 +1,10 @@
 //! Session context: configuration, credentials, and runtime state.
 
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 use std::collections::HashMap;
+use std::future::Future;
+use std::pin::Pin;
 use std::sync::Arc;
 use tokio::sync::Mutex;
 
@@ -153,6 +156,13 @@ impl std::fmt::Debug for HttpState {
     }
 }
 
+pub type UploadCallback = Arc<dyn Fn(Value) -> Pin<Box<dyn Future<Output = ()> + Send>> + Send + Sync>;
+pub type UploadCallbacks = Arc<std::sync::Mutex<HashMap<String, UploadCallback>>>;
+
+fn new_upload_callbacks() -> UploadCallbacks {
+    Arc::new(std::sync::Mutex::new(HashMap::new()))
+}
+
 /// Base context for pre-login operations.
 #[derive(Clone)]
 pub struct ContextBase {
@@ -168,6 +178,7 @@ pub struct ContextBase {
     pub login_info: Option<LoginInfo>,
     pub settings: Option<serde_json::Value>,
     pub extra_ver: Option<serde_json::Value>,
+    pub upload_callbacks: UploadCallbacks,
 }
 
 impl std::fmt::Debug for ContextBase {
@@ -182,7 +193,7 @@ impl std::fmt::Debug for ContextBase {
 }
 
 /// Authenticated session context.
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct ContextSession {
     pub api_type: u32,
     pub api_version: u32,
@@ -196,6 +207,18 @@ pub struct ContextSession {
     pub login_info: LoginInfo,
     pub settings: Option<serde_json::Value>,
     pub extra_ver: Option<serde_json::Value>,
+    pub upload_callbacks: UploadCallbacks,
+}
+
+impl std::fmt::Debug for ContextSession {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("ContextSession")
+            .field("api_type", &self.api_type)
+            .field("api_version", &self.api_version)
+            .field("imei", &self.imei)
+            .field("uid", &self.uid)
+            .finish_non_exhaustive()
+    }
 }
 
 impl ContextSession {
@@ -213,6 +236,7 @@ impl ContextSession {
             login_info: base.login_info.clone().unwrap_or_default(),
             settings: base.settings.clone(),
             extra_ver: base.extra_ver.clone(),
+            upload_callbacks: base.upload_callbacks.clone(),
         })
     }
 }
@@ -236,9 +260,6 @@ pub fn create_context(api_type: u32, api_version: u32) -> ContextBase {
         login_info: None,
         settings: None,
         extra_ver: None,
+        upload_callbacks: new_upload_callbacks(),
     }
-}
-
-pub fn is_context_session(ctx: &ContextBase) -> bool {
-    ctx.secret_key.is_some() && ctx.uid.is_some() && ctx.imei.is_some()
 }

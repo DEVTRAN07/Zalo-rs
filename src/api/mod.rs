@@ -323,7 +323,7 @@ pub use update_catalog::{UpdateCatalogPayload, UpdateCatalogResponse};
 pub use update_group_settings::{UpdateGroupSettingsOptions, UpdateGroupSettingsResponse};
 pub use listen::{ListenOptions, ListenResponse};
 pub use upgrade_group_to_community::UpgradeGroupToCommunityResponse;
-pub use upload_attachment::{AttachmentSource, UploadAttachmentResponse};
+pub use upload_attachment::{AttachmentSource, UploadAttachmentFileResponse, UploadAttachmentImageResponse, UploadAttachmentResponse, UploadAttachmentType, UploadAttachmentVideoResponse};
 pub use upload_product_photo::{ProductPhotoSource, UploadProductPhotoPayload, UploadProductPhotoResponse};
 pub use update_hidden_convers_pin::UpdateHiddenConversPinResponse;
 pub use update_labels::{UpdateLabelsPayload, UpdateLabelsResponse};

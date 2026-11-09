@@ -106,6 +106,7 @@ impl Listener {
                     login_info: Some(ctx.login_info.clone()),
                     settings: ctx.settings.clone(),
                     extra_ver: ctx.extra_ver.clone(),
+                    upload_callbacks: ctx.upload_callbacks.clone(),
                 };
                 let ws_query = vec![
                     ("t", now_ms().to_string()),
@@ -246,7 +247,7 @@ async fn connect_and_run(
                 };
                 match msg {
                     Ok(WsMessage::Binary(data)) => {
-                        handle_binary_message(&data, &cipher_key, &event_tx, &out_tx, self_listen).await;
+                        handle_binary_message(&ctx, &data, &cipher_key, &event_tx, &out_tx, self_listen).await;
                     }
                     Ok(WsMessage::Close(frame)) => {
                         zlog_verbose!("WS close frame: {:?}", frame);
@@ -282,6 +283,7 @@ fn is_self_event(data: &Value) -> bool {
 }
 
 async fn handle_binary_message(
+    ctx: &ContextSession,
     data: &[u8],
     cipher_key: &Arc<Mutex<Option<String>>>,
     event_tx: &mpsc::UnboundedSender<ListenerEvent>,
@@ -376,7 +378,49 @@ async fn handle_binary_message(
             if !self_listen && is_self_event(&event_data) {
                 return;
             }
-            let _ = event_tx.send(ListenerEvent::Control(event_data));
+            let _ = event_tx.send(ListenerEvent::Control(event_data.clone()));
+
+            // Async upload completion callback (TS: listen.ts uploadCallbacks for file_done/send_file_done).
+            if let Some(obj) = event_data.as_object() {
+                if let Some(content) = obj.get("content").and_then(|v| v.as_object()) {
+                    let act = content.get("act").and_then(|v| v.as_str()).unwrap_or("");
+                    let act_type = content
+                        .get("act_type")
+                        .or_else(|| content.get("actType"))
+                        .and_then(|v| v.as_str())
+                        .unwrap_or("");
+                    if act_type == "file_done" && (act == "send_file_done" || act == "file_done") {
+                        if let Some(file_id) = content
+                            .get("fileId")
+                            .or_else(|| content.get("file_id"))
+                            .and_then(|v| {
+                                v.as_str()
+                                    .map(|s| s.to_string())
+                                    .or_else(|| v.as_i64().map(|n| n.to_string()))
+                            })
+                        {
+                            let file_url = content
+                                .get("data")
+                                .and_then(|d| d.get("url").or_else(|| d.get("fileUrl")))
+                                .and_then(|v| v.as_str())
+                                .unwrap_or("")
+                                .to_string();
+                            let data = serde_json::json!({
+                                "fileUrl": file_url,
+                                "fileId": file_id.clone(),
+                            });
+                            let callback = ctx
+                                .upload_callbacks
+                                .lock()
+                                .unwrap_or_else(|e| e.into_inner())
+                                .remove(&file_id);
+                            if let Some(cb) = callback {
+                                cb(data).await;
+                            }
+                        }
+                    }
+                }
+            }
         }
         (510, 1) | (511, 1) => {
             let _ = event_tx.send(ListenerEvent::OldMessages(event_data));

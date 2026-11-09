@@ -203,6 +203,7 @@ impl<'a> FactoryUtils<'a> {
             login_info: Some(self.ctx.login_info.clone()),
             settings: self.ctx.settings.clone(),
             extra_ver: self.ctx.extra_ver.clone(),
+            upload_callbacks: self.ctx.upload_callbacks.clone(),
         };
         http::make_url(&base, base_url, params, api_version)
     }
@@ -252,6 +253,7 @@ impl<'a> FactoryUtils<'a> {
             login_info: Some(self.ctx.login_info.clone()),
             settings: self.ctx.settings.clone(),
             extra_ver: self.ctx.extra_ver.clone(),
+            upload_callbacks: self.ctx.upload_callbacks.clone(),
         }
     }
 }
