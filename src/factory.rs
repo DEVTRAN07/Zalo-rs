@@ -3,10 +3,9 @@
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
 
-use crate::context::{ContextBase, ContextSession};
-use crate::crypto::{decode_aes, encode_aes};
+use crate::context::ContextSession;
+use crate::crypto::decode_aes;
 use crate::errors::{Result, ZaloApiError, ZaloError};
-use crate::http;
 
 /// Standard Zalo API response envelope.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -171,89 +170,3 @@ pub async fn resolve_response<T: DeserializeOwned>(
         .ok_or_else(|| ZaloError::Api(ZaloApiError::new("Empty response data")))
 }
 
-/// Helpers passed to endpoint implementations.
-#[deprecated(note = "Use `api::ApiClient` for idiomatic request handling.")]
-pub struct FactoryUtils<'a> {
-    pub ctx: &'a ContextSession,
-}
-
-impl<'a> FactoryUtils<'a> {
-    pub fn new(ctx: &'a ContextSession) -> Self {
-        Self { ctx }
-    }
-
-    /// Build a Zalo API URL with version/type params.
-    pub fn make_url(
-        &self,
-        base_url: &str,
-        params: &[(&str, String)],
-        api_version: bool,
-    ) -> Result<String> {
-        // Convert session ctx to base-compatible view for make_url
-        let base = ContextBase {
-            api_type: self.ctx.api_type,
-            api_version: self.ctx.api_version,
-            imei: Some(self.ctx.imei.clone()),
-            user_agent: Some(self.ctx.user_agent.clone()),
-            language: Some(self.ctx.language.clone()),
-            secret_key: Some(self.ctx.secret_key.clone()),
-            uid: Some(self.ctx.uid.clone()),
-            options: self.ctx.options.clone(),
-            http: self.ctx.http.clone(),
-            login_info: Some(self.ctx.login_info.clone()),
-            settings: self.ctx.settings.clone(),
-            extra_ver: self.ctx.extra_ver.clone(),
-            upload_callbacks: self.ctx.upload_callbacks.clone(),
-        };
-        http::make_url(&base, base_url, params, api_version)
-    }
-
-    /// Encrypt data with the session secret key (base64). Returns base64 ciphertext.
-    pub fn encode_aes(&self, data: &str) -> Option<String> {
-        encode_aes(&self.ctx.secret_key, data)
-    }
-
-    /// POST form data to a URL.
-    pub async fn request_post(
-        &self,
-        url: &str,
-        form: &[(&str, String)],
-    ) -> Result<reqwest::Response> {
-        let base = self.ctx_to_base();
-        http::post_form(&base, url, form).await
-    }
-
-    /// GET a URL.
-    pub async fn request_get(&self, url: &str) -> Result<reqwest::Response> {
-        let base = self.ctx_to_base();
-        http::get(&base, url).await
-    }
-
-    /// Resolve an encrypted response into typed data.
-    pub async fn resolve<T: DeserializeOwned>(&self, res: reqwest::Response) -> Result<T> {
-        resolve_response::<T>(self.ctx, res, true).await
-    }
-
-    /// Resolve an unencrypted response into typed data.
-    pub async fn resolve_plain<T: DeserializeOwned>(&self, res: reqwest::Response) -> Result<T> {
-        resolve_response::<T>(self.ctx, res, false).await
-    }
-
-    fn ctx_to_base(&self) -> ContextBase {
-        ContextBase {
-            api_type: self.ctx.api_type,
-            api_version: self.ctx.api_version,
-            imei: Some(self.ctx.imei.clone()),
-            user_agent: Some(self.ctx.user_agent.clone()),
-            language: Some(self.ctx.language.clone()),
-            secret_key: Some(self.ctx.secret_key.clone()),
-            uid: Some(self.ctx.uid.clone()),
-            options: self.ctx.options.clone(),
-            http: self.ctx.http.clone(),
-            login_info: Some(self.ctx.login_info.clone()),
-            settings: self.ctx.settings.clone(),
-            extra_ver: self.ctx.extra_ver.clone(),
-            upload_callbacks: self.ctx.upload_callbacks.clone(),
-        }
-    }
-}
