@@ -23,9 +23,11 @@ pub struct LastOnlineResponse {
 }
 
 /// Get last online of a user.
+///
+/// Uses a GET request with encrypted params in the URL query string,
+/// mirroring the TypeScript client (no `nretry` query param).
 pub async fn last_online(client: &ApiClient, uid: &str) -> Result<LastOnlineResponse> {
     let base_url = client.service_url("profile", "/api/social/profile/lastOnline")?;
-    let url = client.make_url(&base_url, &[("nretry", "0".to_string())], true)?;
     let params = serde_json::json!({ "uid": uid, "conv_type": 1, "imei": client.ctx().imei });
-    client.post_encrypted(&url, &params).await
+    client.get_encrypted::<LastOnlineResponse>(&base_url, &params).await
 }

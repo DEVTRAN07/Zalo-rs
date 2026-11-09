@@ -29,7 +29,7 @@ pub async fn send_voice(
         return Err(ZaloError::Api(ZaloApiError::new("Missing voiceUrl")));
     }
 
-    let file_size: i64 = match client.request_get(&options.voice_url).await {
+    let file_size: i64 = match client.request_head(&options.voice_url).await {
         Ok(res) => res
             .headers()
             .get("content-length")

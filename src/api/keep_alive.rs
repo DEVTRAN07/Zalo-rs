@@ -14,26 +14,15 @@ pub struct KeepAliveResponse {
 
 /// Keep the session alive.
 ///
-/// Uses the chat keepalive endpoint. The exact payload is minimal; failures
-/// are non-fatal in typical usage.
+/// Uses the chat keepalive endpoint with a GET request and the encrypted
+/// params placed in the URL query string (mirrors the TypeScript client).
 pub async fn keep_alive(client: &ApiClient) -> Result<KeepAliveResponse> {
-    // Zalo's keepAlive varies; use chat service as a common target.
     let url = client
         .service_url("chat", "/keepalive")
         .unwrap_or_else(|_| "https://wpa.chat.zalo.me/api/chat/keepalive".to_string());
-    let url = client.make_url(&url, &[], true)?;
 
     let params = serde_json::json!({
         "imei": client.ctx().imei,
     });
-    if let Some(encrypted) = client.encode_aes(&params.to_string()) {
-        let res = client.request_post(&url, &[("params", encrypted)]).await?;
-        // Try to resolve; if server returns unexpected format, return default.
-        match client.resolve::<KeepAliveResponse>(res).await {
-            Ok(v) => Ok(v),
-            Err(_) => Ok(KeepAliveResponse::default()),
-        }
-    } else {
-        Ok(KeepAliveResponse::default())
-    }
+    client.get_encrypted::<KeepAliveResponse>(&url, &params).await
 }

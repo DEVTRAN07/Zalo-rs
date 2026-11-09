@@ -66,6 +66,21 @@ impl ApiClient {
         http::get(&self.ctx_to_base(), url).await
     }
 
+    /// HEAD a URL (fetch headers only, no body).
+    pub async fn request_head(&self, url: &str) -> Result<reqwest::Response> {
+        http::head(&self.ctx_to_base(), url).await
+    }
+
+    /// GET with encrypted params in the URL query string.
+    pub async fn get_encrypted<T: DeserializeOwned>(&self, url: &str, params: &Value) -> Result<T> {
+        let encrypted = self
+            .encode_aes(&params.to_string())
+            .ok_or_else(|| ZaloError::Api(ZaloApiError::new("Failed to encrypt params")))?;
+        let url = self.make_url(url, &[("params", encrypted)], true)?;
+        let res = self.request_get(&url).await?;
+        self.resolve(res).await
+    }
+
     /// Resolve an encrypted response into typed data.
     pub async fn resolve<T: DeserializeOwned>(&self, res: reqwest::Response) -> Result<T> {
         crate::factory::resolve_response(&self.ctx, res, true).await

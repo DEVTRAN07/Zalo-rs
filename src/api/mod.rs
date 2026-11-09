@@ -582,8 +582,8 @@ impl ZaloApi {
         get_own_id::get_own_id(self.api_client())
     }
 
-    pub fn get_cookie(&self) -> Result<GetCookieResponse> {
-        get_cookie::get_cookie(self.api_client())
+    pub async fn get_cookie(&self) -> Result<GetCookieResponse> {
+        get_cookie::get_cookie(self.api_client()).await
     }
 
     pub fn get_context(&self) -> Result<GetContextResponse> {

@@ -203,3 +203,8 @@ pub async fn post_form(ctx: &ContextBase, url: &str, form: &[(&str, String)]) ->
 pub async fn get(ctx: &ContextBase, url: &str) -> Result<reqwest::Response> {
     request(ctx, Method::GET, url, None, None, false).await
 }
+
+/// Convenience: HEAD.
+pub async fn head(ctx: &ContextBase, url: &str) -> Result<reqwest::Response> {
+    request(ctx, Method::HEAD, url, None, None, false).await
+}

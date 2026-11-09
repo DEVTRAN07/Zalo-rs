@@ -39,7 +39,7 @@ pub async fn send_video(
     }
 
     // Best-effort content-length via HEAD (may fail; default to 0).
-    let file_size: i64 = match client.request_get(&options.video_url).await {
+    let file_size: i64 = match client.request_head(&options.video_url).await {
         Ok(res) => res
             .headers()
             .get("content-length")
