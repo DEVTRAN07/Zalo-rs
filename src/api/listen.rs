@@ -1,9 +1,9 @@
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
+use tokio::sync::mpsc;
 
 use crate::api::client::ApiClient;
 use crate::errors::Result;
-use crate::ws::Listener;
+use crate::ws::{Listener, ListenerEvent};
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct ListenOptions {
@@ -11,14 +11,18 @@ pub struct ListenOptions {
     pub retry_on_close: bool,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
-pub struct ListenResponse(pub Value);
+#[derive(Debug)]
+pub struct ListenResponse {
+    pub status: String,
+    pub ws_urls: usize,
+    pub rx: mpsc::UnboundedReceiver<ListenerEvent>,
+}
 
 pub async fn listen(
     client: &ApiClient,
     options: Option<ListenOptions>,
 ) -> Result<ListenResponse> {
-    let _ = options; // retry_on_close handled by Listener internally
+    let _ = options;
 
     let ws_urls = client.ws_urls().clone();
     if ws_urls.is_empty() {
@@ -27,14 +31,14 @@ pub async fn listen(
         ));
     }
 
-    // Create and start the listener
     let mut listener = Listener::new(client.ctx().clone(), ws_urls.clone());
-    let _rx = listener.start()?;
+    let rx = listener.start()?;
 
-    Ok(ListenResponse(serde_json::json!({
-        "status": "listening",
-        "ws_urls": ws_urls.len()
-    })))
+    Ok(ListenResponse {
+        status: "listening".into(),
+        ws_urls: ws_urls.len(),
+        rx,
+    })
 }
 
 pub fn create_listener(client: &ApiClient, ws_urls: Vec<String>) -> Listener {
