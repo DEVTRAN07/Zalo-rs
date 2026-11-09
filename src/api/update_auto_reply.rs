@@ -1,5 +1,4 @@
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
 
 use crate::api::client::ApiClient;
 use crate::errors::Result;

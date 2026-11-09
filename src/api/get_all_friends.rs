@@ -1,7 +1,6 @@
 //! Get all friends.
 
 use crate::api::client::ApiClient;
-use serde_json::Value;
 
 use crate::errors::{Result, ZaloApiError, ZaloError};
 use crate::models::r#enum::AvatarSize;

@@ -3,7 +3,7 @@
 use serde::{Deserialize, Serialize};
 
 use crate::api::client::ApiClient;
-use crate::errors::{Result, ZaloApiError, ZaloError};
+use crate::errors::Result;
 use crate::models::bank::BankAccount;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::api::client::ApiClient;
 use crate::core::utils::normalize_holder_name;
-use crate::errors::{Result, ZaloApiError, ZaloError};
+use crate::errors::Result;
 use crate::models::bank::BankAccount;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

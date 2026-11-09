@@ -1,8 +1,7 @@
-use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 use crate::api::client::ApiClient;
-use crate::errors::{Result, ZaloApiError, ZaloError};
+use crate::errors::Result;
 use crate::models::r#enum::ThreadType;
 
 pub type SetMuteResponse = Value;

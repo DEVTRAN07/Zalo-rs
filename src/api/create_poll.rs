@@ -1,10 +1,9 @@
 //! Create a poll in a group.
 
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
 
 use crate::api::client::ApiClient;
-use crate::errors::{Result, ZaloApiError, ZaloError};
+use crate::errors::Result;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CreatePollOptions {
