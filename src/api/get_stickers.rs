@@ -26,7 +26,7 @@ pub async fn get_stickers(
         .encode_aes(&params.to_string())
         .ok_or_else(|| ZaloError::Api(ZaloApiError::new("Failed to encrypt message")))?;
 
-    let url = url_with_params(&url_base, &encrypted);
+    let url = if url_base.contains('?') { format!("{}&params={}", &url_base, urlencoding::encode(&encrypted)) } else { format!("{}?params={}", &url_base, urlencoding::encode(&encrypted)) };
     let res = client.request_get(&url).await?;
     let suggestions: Value = client.resolve(res).await?;
 
@@ -41,12 +41,4 @@ pub async fn get_stickers(
         }
     }
     Ok(sticker_ids)
-}
-
-fn url_with_params(url: &str, params: &str) -> String {
-    if url.contains('?') {
-        format!("{}&params={}", url, urlencoding::encode(params))
-    } else {
-        format!("{}?params={}", url, urlencoding::encode(params))
-    }
 }

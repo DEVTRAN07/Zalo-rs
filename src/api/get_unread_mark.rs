@@ -28,7 +28,7 @@ pub async fn get_unread_mark(client: &ApiClient) -> Result<GetUnreadMarkResponse
     let encrypted = client
         .encode_aes(&params.to_string())
         .ok_or_else(|| ZaloError::Api(ZaloApiError::new("Failed to encrypt params")))?;
-    let url = url_with_params(&base_url, &encrypted);
+    let url = if base_url.contains('?') { format!("{}&params={}", &base_url, urlencoding::encode(&encrypted)) } else { format!("{}?params={}", &base_url, urlencoding::encode(&encrypted)) };
     let res = client.request_get(&url).await?;
     if !res.status().is_success() {
         return Err(ZaloError::Api(ZaloApiError::new(format!(
@@ -55,12 +55,4 @@ pub async fn get_unread_mark(client: &ApiClient) -> Result<GetUnreadMarkResponse
         }
     }
     serde_json::from_value(data).map_err(|e| ZaloError::Api(ZaloApiError::new(e.to_string())))
-}
-
-fn url_with_params(url: &str, params: &str) -> String {
-    if url.contains('?') {
-        format!("{}&params={}", url, urlencoding::encode(params))
-    } else {
-        format!("{}?params={}", url, urlencoding::encode(params))
-    }
 }

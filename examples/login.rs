@@ -47,8 +47,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let _ = api.keep_alive().await;
 
     // WebSocket listener example (uncomment to use)
-    // let mut listener = api.listener();
-    // let mut rx = listener.start()?;
+    // use zalo_rs::api::ListenOptions;
+    // let resp = api.listen(Some(ListenOptions { retry_on_close: true })).await?;
+    // println!("Listening on {} WS endpoint(s)", resp.ws_urls);
+    // let mut rx = resp.rx;
     // while let Some(event) = rx.recv().await {
     //     println!("Event: {:?}", event);
     // }

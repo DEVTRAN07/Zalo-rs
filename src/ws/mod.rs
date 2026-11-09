@@ -57,14 +57,12 @@ pub enum ListenerEvent {
 pub struct Listener {
     ctx: ContextSession,
     urls: Vec<String>,
-    self_listen: bool,
     stop_tx: Option<mpsc::Sender<()>>,
 }
 
 impl Listener {
     pub fn new(ctx: ContextSession, urls: Vec<String>) -> Self {
         Self {
-            self_listen: ctx.options.self_listen,
             ctx,
             urls,
             stop_tx: None,
@@ -122,7 +120,7 @@ impl Listener {
                     true,
                 )
                 .unwrap_or_else(|_| {
-                    let mut sep = if base.contains('?') { '&' } else { '?' };
+                    let sep = if base.contains('?') { '&' } else { '?' };
                     format!("{}{}t={}&imei={}&uid={}&zpw_enk={}",
                         base, sep, now_ms(),
                         base_ctx.imei.clone().unwrap_or_default(),

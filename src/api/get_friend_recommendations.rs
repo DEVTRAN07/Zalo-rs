@@ -30,11 +30,3 @@ pub async fn get_friend_recommendations(
     let res = client.request_get(&full_url).await?;
     client.resolve(res).await
 }
-
-fn url_with_params(url: &str, params: &str) -> String {
-    if url.contains('?') {
-        format!("{}&params={}", url, urlencoding::encode(params))
-    } else {
-        format!("{}?params={}", url, urlencoding::encode(params))
-    }
-}
