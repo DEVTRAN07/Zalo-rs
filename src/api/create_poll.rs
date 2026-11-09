@@ -22,10 +22,46 @@ pub struct CreatePollOptions {
     pub is_anonymous: bool,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PollOption {
+    pub content: String,
+    pub votes: i64,
+    pub voted: bool,
+    pub voters: Vec<String>,
+    #[serde(rename = "optionId")]
+    pub option_id: i64,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct CreatePollResponse {
-    #[serde(flatten)]
-    pub data: Value,
+    #[serde(rename = "pollId")]
+    pub poll_id: i64,
+    pub question: String,
+    pub options: Vec<PollOption>,
+    #[serde(rename = "expiredTime")]
+    pub expired_time: i64,
+    #[serde(rename = "pinAct")]
+    pub pin_act: bool,
+    #[serde(rename = "allowMultiChoices")]
+    pub allow_multi_choices: bool,
+    #[serde(rename = "allowAddNewOption")]
+    pub allow_add_new_option: bool,
+    #[serde(rename = "isHideVotePreview")]
+    pub is_hide_vote_preview: bool,
+    #[serde(rename = "isAnonymous")]
+    pub is_anonymous: bool,
+    #[serde(rename = "pollType")]
+    pub poll_type: i64,
+    pub src: i64,
+    pub creator: String,
+    pub joined: bool,
+    pub closed: bool,
+    #[serde(rename = "createdTime")]
+    pub created_time: i64,
+    #[serde(rename = "updatedTime")]
+    pub updated_time: i64,
+    #[serde(rename = "numVote")]
+    pub num_vote: i64,
 }
 
 /// Create a poll in a group.

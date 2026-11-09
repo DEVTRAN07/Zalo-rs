@@ -5,6 +5,7 @@ use serde_json::Value;
 
 use crate::api::client::ApiClient;
 use crate::errors::{Result, ZaloApiError, ZaloError};
+use crate::models::r#enum::AvatarSize;
 
 pub use super::url::service_url;
 
@@ -21,7 +22,13 @@ pub struct UserInfoResponse {
 /// Get user info using user id(s).
 ///
 /// `user_ids` are Zalo user IDs. The API expects `{id}_0` format internally.
-pub async fn get_user_info(client: &ApiClient, user_ids: &[&str]) -> Result<UserInfoResponse> {
+///
+/// `avatar_size` specifies the avatar size to fetch (default: `AvatarSize::Small` = 120).
+pub async fn get_user_info(
+    client: &ApiClient,
+    user_ids: &[&str],
+    avatar_size: AvatarSize,
+) -> Result<UserInfoResponse> {
     if user_ids.is_empty() {
         return Err(ZaloError::Api(ZaloApiError::new("Missing user id")));
     }
@@ -51,7 +58,7 @@ pub async fn get_user_info(client: &ApiClient, user_ids: &[&str]) -> Result<User
     let params = serde_json::json!({
         "phonebook_version": phonebook_ver,
         "friend_pversion_map": friend_pversion_map,
-        "avatar_size": 120,
+        "avatar_size": avatar_size as i32,
         "language": client.ctx().language,
         "show_online_status": 1,
         "imei": client.ctx().imei,

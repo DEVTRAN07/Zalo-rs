@@ -3,14 +3,15 @@ use serde_json::Value;
 
 use crate::api::client::ApiClient;
 use crate::errors::Result;
+use crate::models::r#enum::Gender;
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct UpdateProfileInfo {
     pub name: String,
     /// Date of birth in YYYY-MM-DD format.
     pub dob: String,
-    /// Gender value (numeric as per API; 0 = male, 1 = female in TS enum).
-    pub gender: i32,
+    /// Gender of the user.
+    pub gender: Gender,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -45,7 +46,7 @@ pub async fn update_profile(
     let profile_json = serde_json::json!({
         "name": payload.profile.name,
         "dob": payload.profile.dob,
-        "gender": payload.profile.gender,
+        "gender": payload.profile.gender as i32,
     });
     let biz = payload.biz.unwrap_or_default();
     let biz_json = serde_json::json!({

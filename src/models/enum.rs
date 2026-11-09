@@ -3,8 +3,9 @@
 use serde::{Deserialize, Serialize};
 
 /// Thread type: user (0) or group (1).
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub enum ThreadType {
+    #[default]
     User = 0,
     Group = 1,
 }
@@ -18,15 +19,18 @@ pub enum DestType {
 }
 
 /// Gender of a user.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub enum Gender {
+    #[default]
     Male = 0,
     Female = 1,
+    Other = 2,
 }
 
 /// Avatar size options.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub enum AvatarSize {
+    #[default]
     Small = 120,
     /// Use only if you know what you're doing.
     Medium = 180,

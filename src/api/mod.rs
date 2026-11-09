@@ -371,7 +371,7 @@ impl ZaloApi {
 
     // --- existing ---
     pub async fn get_user_info(&self, user_ids: &[&str]) -> Result<UserInfoResponse> {
-        get_user_info::get_user_info(self.api_client(), user_ids).await
+        get_user_info::get_user_info(self.api_client(), user_ids, crate::models::r#enum::AvatarSize::Small).await
     }
 
     pub async fn keep_alive(&self) -> Result<KeepAliveResponse> {
