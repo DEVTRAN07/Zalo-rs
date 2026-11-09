@@ -4,6 +4,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
 use crate::api::client::ApiClient;
+use crate::api::change_group_avatar::change_group_avatar;
 use crate::errors::{Result, ZaloApiError, ZaloError};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -11,10 +12,12 @@ pub struct CreateGroupOptions {
     #[serde(default)]
     pub name: Option<String>,
     pub members: Vec<String>,
-    /// Avatar path (local file). Avatar upload is not yet implemented in
-    /// rust-client; if provided, it will be ignored with a warning.
+    /// Avatar source, can be a file path.
     #[serde(default)]
     pub avatar_source: Option<String>,
+    /// Path to the avatar image file.
+    #[serde(default)]
+    pub avatar_path: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -71,7 +74,12 @@ pub async fn create_group(
 
     let data: CreateGroupResponse = client.post_encrypted(&url, &params).await?;
 
-    // Avatar upload not implemented in rust-client; silently skip.
-    let _ = options.avatar_source;
+    let avatar_source = options.avatar_source.or(options.avatar_path);
+    if let Some(avatar_path) = avatar_source {
+        if let Err(e) = change_group_avatar(client, &avatar_path, &data.group_id).await {
+            log::warn!("Failed to upload group avatar: {}", e);
+        }
+    }
+
     Ok(data)
 }
